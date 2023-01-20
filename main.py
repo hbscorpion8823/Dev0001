@@ -30,11 +30,11 @@ class MainGame(Widget):
         Clock.schedule_interval(self.update, 1 / 60.0)
 
     def update(self, td):
-        v = 7
-        tmpY = self.obj01.pos[1]
-        self.obj01.pos = (self.obj01.pos[0], self.obj01.pos[1] - v)
-        if self.obj01.collide_widget(self.obj02):
-            self.obj01.pos = (self.obj01.pos[0], tmpY)
+        # 移動系処理
+        self.obj01.update(td)
+        self.obj02.update(td)
+        # 衝突判定系処理
+        self.obj02.keepoff(self.obj01)
 
 
 class MainApp(App):
