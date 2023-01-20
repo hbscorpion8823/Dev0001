@@ -17,7 +17,7 @@ class BaseObj(Widget):
 
 class Obj01(BaseObj):
 
-    v = (0, -1)
+    v = (-1, 0)
 
     def update(self, dt):
         self.pos = (self.pos[0] + self.v[0], self.pos[1] + self.v[1])
@@ -36,5 +36,11 @@ class Obj02(BaseObj):
         obj01_right = _obj01.pos[0] + self.width
         obj01_top = _obj01.pos[1] + self.height
         if self.collide_widget(_obj01):
-            if obj02_top > obj01_bottom:
+            if self.center_y < _obj01.center_y and obj02_top > obj01_bottom:
                 _obj01.pos[1] = obj02_top
+            if self.center_y > _obj01.center_y and obj02_bottom < obj01_top:
+                _obj01.pos[1] = obj02_bottom - _obj01.height
+            if self.center_x > _obj01.center_x and obj02_left < obj01_right:
+                _obj01.pos[0] = obj02_left - _obj01.width
+            if self.center_x < _obj01.center_x and obj02_right > obj01_left:
+                _obj01.pos[0] = obj02_right
