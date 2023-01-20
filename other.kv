@@ -1,0 +1,22 @@
+#:kivy 1.0.9
+
+<BaseObj>:
+    size_hint: None, None
+    canvas:
+        Color: 
+            rgba: 1., 1., 1., 1.
+        Rectangle:
+            texture: self.texture
+            pos: self.pos
+            size: self.size
+
+<Obj01>:
+    region: 0, 896, 64, 64
+    size: 100, 100
+    pos: 50, 350
+
+
+<Obj02>:
+    region: 0, 960, 64, 64
+    size: 100, 100
+    pos: 50, 50

@@ -1,5 +1,7 @@
 #:kivy 1.0.9
 
+#:include force other.kv
+
 <MainGame>:
     layout01: l01
 
@@ -16,5 +18,10 @@
         Button:
             text: 'Hello World!!'
             size_hint: None, None
-            size: '300dp', '200dp'
+            size: 300, 200
             pos_hint: {'center_x':.9, 'center_y': .9}
+
+<MyImages>:
+    source: 'images001.png'
+    size: self.texture_size
+
