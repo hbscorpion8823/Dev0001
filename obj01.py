@@ -35,6 +35,8 @@ class Obj02(BaseObj):
         obj01_bottom = _obj01.pos[1]
         obj01_right = _obj01.pos[0] + self.width
         obj01_top = _obj01.pos[1] + self.height
+
+        # 衝突判定
         if self.collide_widget(_obj01):
             if self.center_y < _obj01.center_y and obj02_top > obj01_bottom:
                 _obj01.pos[1] = obj02_top
