@@ -17,14 +17,14 @@ class BaseObj(Widget):
 
 class Obj01(BaseObj):
 
-    v = (-1, 0)
+    v = (0, -1)
 
     def update(self, dt):
         self.pos = (self.pos[0] + self.v[0], self.pos[1] + self.v[1])
 
 
 class Obj02(BaseObj):
-    def keepoff(self, _obj01):
+    def keepoff(self, _obj01, td):
         # 床 left, bottom, right, top
         obj02_left = self.pos[0]
         obj02_bottom = self.pos[1]
@@ -38,11 +38,15 @@ class Obj02(BaseObj):
 
         # 衝突判定
         if self.collide_widget(_obj01):
-            if self.center_y < _obj01.center_y and obj02_top > obj01_bottom:
+            if obj02_top > obj01_bottom and obj01_bottom - _obj01.v[1] >= obj02_top:
+                print("case1")
                 _obj01.pos[1] = obj02_top
-            if self.center_y > _obj01.center_y and obj02_bottom < obj01_top:
+            elif obj02_bottom < obj01_top and obj01_top - _obj01.v[1] <= obj02_bottom:
+                print("case2")
                 _obj01.pos[1] = obj02_bottom - _obj01.height
-            if self.center_x > _obj01.center_x and obj02_left < obj01_right:
+            elif obj02_left < obj01_right and obj01_right - _obj01.v[0] <= obj02_left:
+                print("case3")
                 _obj01.pos[0] = obj02_left - _obj01.width
-            if self.center_x < _obj01.center_x and obj02_right > obj01_left:
+            elif obj02_right > obj01_left and obj01_left - _obj01.v[0] >= obj02_right:
+                print("case4")
                 _obj01.pos[0] = obj02_right
