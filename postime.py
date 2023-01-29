@@ -1,10 +1,12 @@
 from kivy.properties import ObjectProperty
 import math
+from dataclasses import dataclass
 
 
+@dataclass
 class PosTime:
-    pos = ObjectProperty(None)
-    currentTime = ObjectProperty(None)
+    pos: tuple
+    currentTime: float
 
 
 class PosTimeUtil:
@@ -21,6 +23,8 @@ class PosTimeUtil:
         # x, yの差分を出す
         dx = PosTimeUtil.getDeltaX(p1, p2)
         dy = PosTimeUtil.getDeltaY(p1, p2)
+        if dx == 0 and dy == 0:
+            return None
         # 差分ベクトルからsin(正弦)を算出
         sinTheta = dy / math.sqrt(dx * dx + dy * dy)
         # 逆正弦をとって、角度を算出（ラジアン単位）

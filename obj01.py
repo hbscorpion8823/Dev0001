@@ -17,10 +17,13 @@ class BaseObj(Widget):
 
 class Obj01(BaseObj):
 
-    v = (0, -1)
+    v = (0, 0)
+
+    g = 9.8
 
     def update(self, dt):
         self.pos = (self.pos[0] + self.v[0], self.pos[1] + self.v[1])
+        self.v = (self.v[0], self.v[1] - dt * self.g)
 
 
 class Obj02(BaseObj):
@@ -41,12 +44,19 @@ class Obj02(BaseObj):
             if obj02_top > obj01_bottom and obj01_bottom - _obj01.v[1] >= obj02_top:
                 print("case1")
                 _obj01.pos[1] = obj02_top
+                _obj01.v = (_obj01.v[0], 0)
+
             elif obj02_bottom < obj01_top and obj01_top - _obj01.v[1] <= obj02_bottom:
                 print("case2")
                 _obj01.pos[1] = obj02_bottom - _obj01.height
-            elif obj02_left < obj01_right and obj01_right - _obj01.v[0] <= obj02_left:
-                print("case3")
-                _obj01.pos[0] = obj02_left - _obj01.width
-            elif obj02_right > obj01_left and obj01_left - _obj01.v[0] >= obj02_right:
-                print("case4")
-                _obj01.pos[0] = obj02_right
+                _obj01.v = (_obj01.v[0], -1 * _obj01.v[1])
+
+            if _obj01.pos[1] != obj02_top:
+                if obj02_left < obj01_right and obj01_right - _obj01.v[0] <= obj02_left:
+                    print("case3")
+                    _obj01.pos[0] = obj02_left - _obj01.width
+                    _obj01.v = (0, _obj01.v[1])
+                elif obj02_right > obj01_left and obj01_left - _obj01.v[0] >= obj02_right:
+                    print("case4")
+                    _obj01.pos[0] = obj02_right
+                    _obj01.v = (0, _obj01.v[1])

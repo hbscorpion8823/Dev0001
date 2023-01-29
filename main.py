@@ -5,8 +5,9 @@ from kivy.uix.image import Image
 from obj01 import Obj01, Obj02
 from kivy.config import Config
 from kivy.properties import ObjectProperty
-from postime import PosTime
+from postime import PosTime, PosTimeUtil
 import time
+import math
 
 # 勝手にportraitオリエンテーションにするのを防ぐためのおまじない
 Config.set('graphics', 'resizable', False)
@@ -78,6 +79,27 @@ class MainGame(Widget):
         else:
             self.player.center_x = touch.pos[0]
             self.player.center_y = touch.pos[1]
+
+    def on_touch_move(self, touch):
+        # move座標を記録（時間もあわせて記録）
+        pt = PosTime(touch.pos, time.time())
+        self.touchPosArray.append(pt)
+        if len(self.touchPosArray) > 5:
+            self.touchPosArray.pop(0)
+
+        # 始点と終点の座標と時間をとる
+        p1 = self.touchPosArray[0]
+        p2 = self.touchPosArray[len(self.touchPosArray) - 1]
+
+        # 角度を算出
+        angle = PosTimeUtil.getAngle(p1, p2)
+        # 45度超なら上に、45度以下なら横に速度を発生させる
+        if angle == None:
+            pass
+        elif angle > 0.25 * math.pi:
+            self.player.v = (self.player.v[0], 5)
+        else:
+            self.player.v = (5, self.player.v[1])
 
 
 class MainApp(App):
