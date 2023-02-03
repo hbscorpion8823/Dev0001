@@ -4,10 +4,12 @@ from kivy.clock import Clock
 from kivy.uix.image import Image
 from obj01 import Obj01, Obj02
 from kivy.config import Config
-from kivy.properties import ObjectProperty
+from kivy.properties import ObjectProperty, NumericProperty
 from postime import PosTime, PosTimeUtil
 import time
 import math
+from kivy.logger import Logger
+from kivy.core.window import Window
 
 # 勝手にportraitオリエンテーションにするのを防ぐためのおまじない
 Config.set('graphics', 'resizable', False)
@@ -25,9 +27,13 @@ class MainGame(Widget):
     objs = ObjectProperty(None)
     # タッチ座標配列
     touchPosArray = ObjectProperty(None)
+    # 現在のX座標
+    currentX = NumericProperty(None)
 
     def __init__(self, **kwargs):
         super(MainGame, self).__init__()
+
+        Logger.info('Hoge:' + '{}'.format(Window.width))
 
         # ステージ内オブジェクトの配列を初期化
         self.objs = []
@@ -49,6 +55,7 @@ class MainGame(Widget):
                     self.player = Obj01()
                     self.player.spawn(imgs)
                     self.player.pos = (x * 100, y * 100)
+                    self.currentX = x * 100
                     self.add_widget(self.player)
                 elif tiles[x] == "2":
                     # obj02を初期化し、メインのWidgetに追加
@@ -72,13 +79,10 @@ class MainGame(Widget):
             obj02.keepoff(self.player, td)
 
     def on_touch_down(self, touch):
-        print(touch)
-
         if self.player is None:
             pass
         else:
-            self.player.center_x = touch.pos[0]
-            self.player.center_y = touch.pos[1]
+            self.player.v = (0, 0)
 
     def on_touch_move(self, touch):
         # move座標を記録（時間もあわせて記録）
@@ -92,14 +96,14 @@ class MainGame(Widget):
         p2 = self.touchPosArray[len(self.touchPosArray) - 1]
 
         # 角度を算出
-        angle = PosTimeUtil.getAngle(p1, p2)
+        sinTheta = PosTimeUtil.getSinTheta(p1, p2)
         # 45度超なら上に、45度以下なら横に速度を発生させる
-        if angle == None:
+        if sinTheta == None:
             pass
-        elif angle > 0.25 * math.pi:
-            self.player.v = (self.player.v[0], 5)
+        elif math.fabs(sinTheta) > 0.5 * math.sqrt(2):
+            self.player.v = (self.player.v[0], PosTimeUtil.getVy(p1, p2))
         else:
-            self.player.v = (5, self.player.v[1])
+            self.player.v = (PosTimeUtil.getVx(p1, p2), self.player.v[1])
 
 
 class MainApp(App):

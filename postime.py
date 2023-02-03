@@ -31,13 +31,34 @@ class PosTimeUtil:
         return math.asin(sinTheta)
 
     @staticmethod
+    def getSinTheta(p1, p2):
+        # x, yの差分を出す
+        dx = PosTimeUtil.getDeltaX(p1, p2)
+        dy = PosTimeUtil.getDeltaY(p1, p2)
+        if dx == 0 and dy == 0:
+            return None
+        # 差分ベクトルからsin(正弦)を算出
+        return dy / math.sqrt(dx * dx + dy * dy)
+
+    @staticmethod
     def getVx(p1, p2):
         dx = p2.pos[0] - p1.pos[0]
         dt = p2.currentTime - p1.currentTime
-        return dx / dt
+        v = dx / dt
+        if abs(v) > 1200:
+            if v < 0:
+                return -1200
+            else:
+                return 1200
+        else:
+            return v
 
     @staticmethod
     def getVy(p1, p2):
         dy = p2.pos[1] - p1.pos[1]
         dt = p2.currentTime - p1.currentTime
-        return dy / dt
+        v = dy / dt
+        if v > 1200:
+            return 1200
+        else:
+            return v
