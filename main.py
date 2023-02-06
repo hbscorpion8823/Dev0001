@@ -16,10 +16,12 @@ Config.set('graphics', 'resizable', False)
 
 
 class MyImages(Image):
+    """ ゲームで使用する画像をまとめた1枚画像 """
     pass
 
 
 class MainGame(Widget):
+    """ メインのゲームウィジェット """
 
     # プレイヤー
     player = ObjectProperty(None)
@@ -29,17 +31,30 @@ class MainGame(Widget):
     touchPosArray = ObjectProperty(None)
     # 現在のX座標
     currentX = NumericProperty(None)
+    # 画面横幅
+    screenWidth = NumericProperty(None)
+    # ステージ横幅
+    stageWidth = NumericProperty(None)
 
     def __init__(self, **kwargs):
+        """ 初期化処理 """
+
+        # 上位クラスの初期化処理
         super(MainGame, self).__init__()
 
-        Logger.info('Hoge:' + '{}'.format(Window.width))
+        # デバイスの画面解像度
+        Logger.info('Hoge: Window.width={}'.format(Window.width))
+        self.screenWidth = Window.width
+
+        # 画面の位置座標を初期化
+        self.currentX = 0
 
         # ステージ内オブジェクトの配列を初期化
         self.objs = []
         # タッチ座標配列を初期化
         self.touchPosArray = []
 
+        # ステージのタイルを読み込む
         f = open('tile01.txt', 'r', encoding='UTF-8')
         tileLines = f.readlines()
         f.close()
@@ -49,13 +64,13 @@ class MainGame(Widget):
 
         for y in range(0, len(tileLines)):
             tiles = tileLines[len(tileLines) - 1 - y].strip()
+            self.stageWidth = len(tiles) * 100
             for x in range(0, len(tiles)):
                 if tiles[x] == "1":
                     # obj01を初期化し、メインのWidgetに追加
                     self.player = Obj01()
                     self.player.spawn(imgs)
                     self.player.pos = (x * 100, y * 100)
-                    self.currentX = x * 100
                     self.add_widget(self.player)
                 elif tiles[x] == "2":
                     # obj02を初期化し、メインのWidgetに追加
@@ -65,26 +80,86 @@ class MainGame(Widget):
                     self.objs.append(obj02)
                     self.add_widget(obj02)
 
+        # 毎秒60回更新処理を実行する
         Clock.schedule_interval(self.update, 1 / 60.0)
 
-    def update(self, td):
+    def update(self, dt):
+        """ 秒間60回実行されるメイン処理
 
-        # 移動系処理
-        self.player.update(td)
+        :type dt: float(time.time()で取得される値)
+        :param dt: 微分積分でよく使用される⊿t的なパラメータ
+
+        """    # 移動系処理メイン
+        self.moveMain(dt)
+        # 更新系処理メイン
+        self.updateMain(dt)
+
+    def moveMain(self, dt):
+        """ 各オブジェクトの移動系処理 """
+
+        # x変化量を出す
+        dx = self.player.v[0] * dt
+        playerDx = 0  # プレイヤー自身のx増分
+        relativeDx = 0  # 相対的x増分
+
+        # player系移動処理
+        # player座標 >= 中央 && 速度>0 && ステージに右側がある: プレイヤーは動かず、プレイヤー以外が左へ移動する
+        # player < 中央 - プレイヤー横幅 && 速度<0 && ステージに左側がある: プレイヤーは動かず、プレイヤー以外が右へ移動する
+        # それ以外: プレイヤーの速度 * 時間 でプレイヤーを移動する
+        if self.player.pos[0] >= 0.5 * self.screenWidth and self.player.v[0] > 0 and self.currentX + self.screenWidth < self.stageWidth:
+            playerDx = 0
+            relativeDx = dx * -1
+            self.currentX = self.currentX + dx  # 右スクロール中、現在座標は加算される
+        elif self.player.pos[0] < 0.5 * self.screenWidth - self.player.size[0] and self.player.v[0] < 0 and self.currentX > 0:
+            playerDx = 0
+            relativeDx = dx * -1
+            self.currentX = self.currentX + dx  # 左スクロール中、現在座標は減算される
+        else:
+            playerDx = dx
+            relativeDx = 0
+
+        self.player.pos = (self.player.pos[0] + playerDx,
+                           self.player.pos[1] + self.player.v[1] * dt)
+        for obj02 in self.objs:
+            obj02.pos = (obj02.pos[0] + relativeDx, obj02.pos[1])
+
+        # playerは0より左へ移動できない
+        if self.player.pos[0] < 0:
+            self.player.pos = (0, self.player.pos[1])
+
+    def updateMain(self, dt):
+        """ 各オブジェクトの状態更新系処理 """
 
         for obj02 in self.objs:
-            # 移動系処理
-            obj02.update(td)
             # 衝突判定系処理
-            obj02.keepoff(self.player, td)
+            obj02.keepoff(self.player, dt)
+
+        # 状態更新系処理
+        self.player.update(dt)
+
+    """ タップ時処理 """
 
     def on_touch_down(self, touch):
+        """ タップ時処理
+
+        :type touch: tupple
+        :param touch: タッチ座標
+
+        """
+
         if self.player is None:
             pass
         else:
             self.player.v = (0, 0)
 
     def on_touch_move(self, touch):
+        """ ドラッグ（スワイプ？）時処理 
+
+        :type touch: tupple
+        :param touch: タッチ座標
+
+        """
+
         # move座標を記録（時間もあわせて記録）
         pt = PosTime(touch.pos, time.time())
         self.touchPosArray.append(pt)
@@ -92,6 +167,7 @@ class MainGame(Widget):
             self.touchPosArray.pop(0)
 
         # 始点と終点の座標と時間をとる
+        # 直近最大5点の始点と終点をp1、p2とする
         p1 = self.touchPosArray[0]
         p2 = self.touchPosArray[len(self.touchPosArray) - 1]
 
