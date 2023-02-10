@@ -13,7 +13,7 @@ package.domain = org.test
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,txt
+source.include_exts = py,png,jpg,kv,atlas,txt,mp3,ogg
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png
@@ -117,10 +117,12 @@ fullscreen = 0
 #android.private_storage = True
 
 # (str) Android NDK directory (if empty, it will be automatically downloaded.)
-android.ndk_path = /home/scopyon/.buildozer/android/platform/android-ndk-r25
+#android.ndk_path = /home/user/.buildozer/android/platform/android-ndk-r25
+android.ndk_path = /path/to/.buildozer/android/platform/android-ndk-r25
 
 # (str) Android SDK directory (if empty, it will be automatically downloaded.)
-android.sdk_path = /home/scopyon/.buildozer/android/platform/android-sdk
+#android.sdk_path = /home/user/.buildozer/android/platform/android-sdk
+android.sdk_path = /path/to/.buildozer/android/platform/android-sdk
 
 # (str) ANT directory (if empty, it will be automatically downloaded.)
 #android.ant_path =
