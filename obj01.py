@@ -1,5 +1,5 @@
 from kivy.uix.scatter import Scatter
-from kivy.properties import ObjectProperty
+from kivy.properties import ObjectProperty, BooleanProperty
 from textureutil import TextureUtil
 from kivy.uix.widget import Widget
 from kivy.logger import Logger
@@ -7,6 +7,7 @@ from kivy.logger import Logger
 
 class BaseObj(Widget):
     texture = ObjectProperty(None)
+    alive = BooleanProperty(True)
 
     def spawn(self, img):
         t01 = TextureUtil.getTexture(img, self.region)
@@ -23,12 +24,17 @@ class Obj01(BaseObj):
     g = 9.8 * 200
 
     def update(self, dt):
+
+        # 落ちたら生存フラグをFalseにする
+        if self.pos[1] + self.height < 0:
+            self.alive = False
+
         # 速度を加算
         self.v = (self.v[0], self.v[1] - dt * self.g)  # 下向きに重力加速度による速度加算が行われる
 
 
 class Obj02(BaseObj):
-    def keepoff(self, _obj01, dt):
+    def affect(self, _obj01, dt):
         # 床 left, bottom, right, top
         obj02_left = self.pos[0]
         obj02_bottom = self.pos[1]

@@ -4,12 +4,13 @@ from kivy.clock import Clock
 from kivy.uix.image import Image
 from obj01 import Obj01, Obj02
 from kivy.config import Config
-from kivy.properties import ObjectProperty, NumericProperty
+from kivy.properties import ObjectProperty, NumericProperty, BooleanProperty
 from postime import PosTime, PosTimeUtil
 import time
 import math
 from kivy.logger import Logger
 from kivy.core.window import Window
+from kivy.core.audio import SoundLoader
 
 # 勝手にportraitオリエンテーションにするのを防ぐためのおまじない
 Config.set('graphics', 'resizable', False)
@@ -35,6 +36,8 @@ class MainGame(Widget):
     screenWidth = NumericProperty(None)
     # ステージ横幅
     stageWidth = NumericProperty(None)
+    # ゲームオーバーフラグ
+    isGameOver = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         """ 初期化処理 """
@@ -61,6 +64,9 @@ class MainGame(Widget):
 
         # イメージをまとめた画像を読み込み
         imgs = MyImages()
+
+        # sound load
+        self.missSound = SoundLoader.load('sounds/miss.mp3')
 
         for y in range(0, len(tileLines)):
             tiles = tileLines[len(tileLines) - 1 - y].strip()
@@ -89,7 +95,11 @@ class MainGame(Widget):
         :type dt: float(time.time()で取得される値)
         :param dt: 微分積分でよく使用される⊿t的なパラメータ
 
-        """    # 移動系処理メイン
+        """
+        if self.isGameOver:
+            return
+
+        # 移動系処理メイン
         self.moveMain(dt)
         # 更新系処理メイン
         self.updateMain(dt)
@@ -103,6 +113,8 @@ class MainGame(Widget):
         relativeDx = 0  # 相対的x増分
 
         # player系移動処理
+
+        # スクロール処理
         # player座標 >= 中央 && 速度>0 && ステージに右側がある: プレイヤーは動かず、プレイヤー以外が左へ移動する
         # player < 中央 - プレイヤー横幅 && 速度<0 && ステージに左側がある: プレイヤーは動かず、プレイヤー以外が右へ移動する
         # それ以外: プレイヤーの速度 * 時間 でプレイヤーを移動する
@@ -123,19 +135,29 @@ class MainGame(Widget):
         for obj02 in self.objs:
             obj02.pos = (obj02.pos[0] + relativeDx, obj02.pos[1])
 
+        Logger.info('Hoge: player.x={}, screenWidth={}'.format(
+            self.player.pos[0], self.screenWidth))
         # playerは0より左へ移動できない
         if self.player.pos[0] < 0:
             self.player.pos = (0, self.player.pos[1])
+        elif self.player.pos[0] > self.screenWidth - self.player.width:
+            self.player.pos = (self.screenWidth -
+                               self.player.width, self.player.pos[1])
 
     def updateMain(self, dt):
         """ 各オブジェクトの状態更新系処理 """
 
+        # 作用系処理
         for obj02 in self.objs:
-            # 衝突判定系処理
-            obj02.keepoff(self.player, dt)
+            # 床がプレイヤーを排他する処理
+            obj02.affect(self.player, dt)
 
         # 状態更新系処理
         self.player.update(dt)
+
+        if self.player.alive == False:
+            self.isGameOver = True
+            self.missSound.play()
 
     """ タップ時処理 """
 
@@ -149,7 +171,7 @@ class MainGame(Widget):
 
         if self.player is None:
             pass
-        else:
+        elif self.player.collide_point(touch.x, touch.y):
             self.player.v = (0, 0)
 
     def on_touch_move(self, touch):
