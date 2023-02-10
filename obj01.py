@@ -58,7 +58,7 @@ class Obj02(BaseObj):
                 _obj01.v = (_obj01.v[0], -1 * _obj01.v[1])
                 print(_obj01.pos[1])
             # 地に足つけてるときは横衝突判定はチェックしない（実は重なり部分がない状態でも接していればcollide_widgetがtrueになるらしいので）
-            if _obj01.pos[1] != obj02_top:
+            if _obj01.pos[1] != obj02_top and _obj01.pos[1] + _obj01.height != obj02_bottom:
                 # 右にブロックがあるとき判定
                 if obj02_left < obj01_right and obj01_right - _obj01.v[0] * dt <= obj02_left:
                     _obj01.pos[0] = obj02_left - _obj01.width
