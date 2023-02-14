@@ -151,7 +151,7 @@ class MainGame(Widget):
         # 作用系処理
         for obj02 in self.objs:
             # 床がプレイヤーを排他する処理
-            obj02.affect(self.player, dt)
+            obj02.affect(self.player)
 
         # 状態更新系処理
         self.player.update(dt)
