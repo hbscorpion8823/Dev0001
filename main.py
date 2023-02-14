@@ -13,7 +13,8 @@ from kivy.core.window import Window
 from kivy.core.audio import SoundLoader
 
 # 勝手にportraitオリエンテーションにするのを防ぐためのおまじない
-Config.set('graphics', 'resizable', False)
+# kivy.core.window を使用すると端末の方向によってはportraitオリエンテーションになってしまう
+Config.set('graphics', 'resizable', 0)
 
 
 class MyImages(Image):
@@ -66,7 +67,7 @@ class MainGame(Widget):
         imgs = MyImages()
 
         # sound load
-        self.missSound = SoundLoader.load('sounds/miss.mp3')
+        self.missSound = SoundLoader.load('./sounds/miss.mp3')
 
         for y in range(0, len(tileLines)):
             tiles = tileLines[len(tileLines) - 1 - y].strip()
@@ -157,6 +158,7 @@ class MainGame(Widget):
 
         if self.player.alive == False:
             self.isGameOver = True
+            self.remove_widget(self.player)
             self.missSound.play()
 
     """ タップ時処理 """
