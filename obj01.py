@@ -10,7 +10,8 @@ import math
 class BaseObj(Widget):
     texture = ObjectProperty(None)
     alive = BooleanProperty(True)
-    SQRT2 = math.sqrt(2)
+    SQRT2 = math.sqrt(2) # よく使うsqrt2は定数として持たせて都度計算するのを回避させる
+    ALPHA = 0.01 # 衝突許容係数 これを設定しないと壁登りとかを許可してしまう
 
     def spawn(self, img):
         t01 = TextureUtil.getTexture(img, self.region)
