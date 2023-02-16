@@ -142,8 +142,7 @@ class MainGame(Widget):
         if self.player.pos[0] < 0:
             self.player.pos = (0, self.player.pos[1])
         elif self.player.pos[0] > self.screenWidth - self.player.width:
-            self.player.pos = (self.screenWidth -
-                               self.player.width, self.player.pos[1])
+            self.player.pos = (self.screenWidth - self.player.width, self.player.pos[1])
 
     def updateMain(self, dt):
         """ 各オブジェクトの状態更新系処理 """

@@ -1,12 +1,13 @@
 from kivy.properties import ObjectProperty
 import math
 from dataclasses import dataclass
+from kivy.logger import Logger
 
 
 @dataclass
 class PosTime:
     pos: tuple
-    currentTime: float
+    currentTime: float = None
 
 
 class PosTimeUtil:
@@ -19,18 +20,6 @@ class PosTimeUtil:
         return p2.pos[1] - p1.pos[1]
 
     @staticmethod
-    def getAngle(p1, p2):
-        # x, yの差分を出す
-        dx = PosTimeUtil.getDeltaX(p1, p2)
-        dy = PosTimeUtil.getDeltaY(p1, p2)
-        if dx == 0 and dy == 0:
-            return None
-        # 差分ベクトルからsin(正弦)を算出
-        sinTheta = dy / math.sqrt(dx * dx + dy * dy)
-        # 逆正弦をとって、角度を算出（ラジアン単位）
-        return math.asin(sinTheta)
-
-    @staticmethod
     def getSinTheta(p1, p2):
         # x, yの差分を出す
         dx = PosTimeUtil.getDeltaX(p1, p2)
@@ -39,6 +28,16 @@ class PosTimeUtil:
             return None
         # 差分ベクトルからsin(正弦)を算出
         return dy / math.sqrt(dx * dx + dy * dy)
+
+    @staticmethod
+    def getCosTheta(p1, p2):
+        # x, yの差分を出す
+        dx = PosTimeUtil.getDeltaX(p1, p2)
+        dy = PosTimeUtil.getDeltaY(p1, p2)
+        if dx == 0 and dy == 0:
+            return None
+        # 差分ベクトルからcos(余弦)を算出
+        return dx / math.sqrt(dx * dx + dy * dy)
 
     @staticmethod
     def getVx(p1, p2):
