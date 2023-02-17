@@ -59,7 +59,7 @@ class MainGame(Widget):
         self.touchPosArray = []
 
         # ステージのタイルを読み込む
-        f = open('tile01.txt', 'r', encoding='UTF-8')
+        f = open('testtile.txt', 'r', encoding='UTF-8')
         tileLines = f.readlines()
         f.close()
 
