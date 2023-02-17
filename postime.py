@@ -6,6 +6,7 @@ from kivy.logger import Logger
 
 @dataclass
 class PosTime:
+    """ kivyのtouch_moveでは時間を管理していないので、位置とシステム時間を記録するデータクラスによって管理する """
     pos: tuple
     currentTime: float = None
 
