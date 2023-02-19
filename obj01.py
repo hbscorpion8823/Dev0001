@@ -5,6 +5,7 @@ from kivy.uix.widget import Widget
 from kivy.logger import Logger
 from postime import PosTime, PosTimeUtil
 import math
+from kivy.animation import Animation
 
 
 class BaseObj(Widget):
@@ -84,6 +85,9 @@ class BaseObj(Widget):
         """ 対象がオブジェクト右方にある場合の処理 """
         pass
 
+    def finish(self):
+        self.alive = False
+
 class Obj01(BaseObj):
 
     v = (0, 0)
@@ -148,3 +152,19 @@ class Obj03(BaseObj):
 
         # 速度を加算
         self.v = (self.v[0], self.v[1] - dt * self.g)  # 下向きに重力加速度による速度加算が行われる
+
+    def upAffect(self, _obj01):
+        """ 対象がオブジェクト上方にある場合の処理 """
+        self.alive = False
+
+    def downAffect(self, _obj01):
+        """ 対象がオブジェクト下方にある場合の処理 """
+        self.alive = False
+
+    def leftAffect(self, _obj01):
+        """ 対象がオブジェクト左方にある場合の処理 """
+        _obj01.alive = False
+
+    def rightAffect(self, _obj01):
+        """ 対象がオブジェクト右方にある場合の処理 """
+        _obj01.alive = False
