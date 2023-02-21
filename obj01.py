@@ -6,13 +6,22 @@ from kivy.logger import Logger
 from postime import PosTime, PosTimeUtil
 import math
 from kivy.animation import Animation
+from kivy.uix.image import Image
+from kivy.core.audio import SoundLoader
 
+# SE
+missSound = SoundLoader.load('./sounds/miss.mp3')
+explosionSound = SoundLoader.load('./sounds/explosion.mp3')
+
+class ExplosionImage(Image):
+    pass
 
 class BaseObj(Widget):
     texture = ObjectProperty(None)
     alive = BooleanProperty(True)
     SQRT2 = math.sqrt(2) # よく使うsqrt2は定数として持たせて都度計算するのを回避させる
     explode = BooleanProperty(False)
+    explodingTime = 0
 
     def spawn(self, img):
         t01 = TextureUtil.getTexture(img, self.region)
@@ -22,7 +31,11 @@ class BaseObj(Widget):
         pass
 
     def update(self, dt):
-        pass
+        if self.explode:
+            self.explodingTime += dt
+
+        if self.explodingTime > 0.3:
+            self.alive = False
 
     def affect(self, _obj01):
         # オブジェクト left, bottom, right, top
@@ -85,8 +98,17 @@ class BaseObj(Widget):
         """ 対象がオブジェクト右方にある場合の処理 """
         pass
 
-    def finish(self):
-        self.alive = False
+    def isOK(self):
+        return self.alive and not self.explode
+
+    def defeat(self, target):
+        if not target.explode:
+            eximg = ExplosionImage()
+            eximg.pos = target.pos
+            eximg.size = target.size
+            target.add_widget(eximg)
+            target.explode = True
+            explosionSound.play()
 
 class Obj01(BaseObj):
 
@@ -103,12 +125,17 @@ class Obj01(BaseObj):
 
     def update(self, dt):
 
+        super(Obj01, self).update(dt)
+
         # 落ちたら生存フラグをFalseにする
         if self.pos[1] + self.height < 0:
+            missSound.play()
             self.alive = False
 
         # 速度を加算
         self.v = (self.v[0], self.v[1] - dt * self.g)  # 下向きに重力加速度による速度加算が行われる
+
+
 
 
 class Obj02(BaseObj):
@@ -146,6 +173,8 @@ class Obj03(BaseObj):
 
     def update(self, dt):
 
+        super(Obj03, self).update(dt)
+
         # 落ちたら生存フラグをFalseにする
         if self.pos[1] + self.height < 0:
             self.alive = False
@@ -155,16 +184,23 @@ class Obj03(BaseObj):
 
     def upAffect(self, _obj01):
         """ 対象がオブジェクト上方にある場合の処理 """
-        self.alive = False
+        if self.isOK():
+            _obj01.v = (_obj01.v[0], min(_obj01.v[1] * -0.5, 1200))
+            self.defeat(self)
 
     def downAffect(self, _obj01):
         """ 対象がオブジェクト下方にある場合の処理 """
-        self.alive = False
+        if self.isOK():
+            self.defeat(self)
 
     def leftAffect(self, _obj01):
         """ 対象がオブジェクト左方にある場合の処理 """
-        _obj01.alive = False
+        if self.isOK():
+            self.defeat(_obj01)
+
 
     def rightAffect(self, _obj01):
         """ 対象がオブジェクト右方にある場合の処理 """
-        _obj01.alive = False
+        if self.isOK():
+            self.defeat(_obj01)
+

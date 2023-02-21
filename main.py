@@ -2,7 +2,7 @@ from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
 from kivy.uix.image import Image
-from obj01 import Obj01, Obj02
+from obj01 import Obj01, Obj02, Obj03
 from kivy.config import Config
 from kivy.properties import ObjectProperty, NumericProperty, BooleanProperty
 from postime import PosTime, PosTimeUtil
@@ -57,17 +57,15 @@ class MainGame(Widget):
         self.objs = []
         # タッチ座標配列を初期化
         self.touchPosArray = []
+        # 敵配列を初期化
+        self.enemies = []
 
         # ステージのタイルを読み込む
-        f = open('testtile.txt', 'r', encoding='UTF-8')
-        tileLines = f.readlines()
-        f.close()
+        with open('testtile.txt', 'r', encoding='UTF-8') as f:
+            tileLines = f.readlines()
 
         # イメージをまとめた画像を読み込み
         imgs = MyImages()
-
-        # sound load
-        self.missSound = SoundLoader.load('./sounds/miss.mp3')
 
         for y in range(0, len(tileLines)):
             tiles = tileLines[len(tileLines) - 1 - y].strip()
@@ -86,6 +84,14 @@ class MainGame(Widget):
                     obj02.pos = (x * 100, y * 100)
                     self.objs.append(obj02)
                     self.add_widget(obj02)
+                elif tiles[x] == "3":
+                    # obj02を初期化し、メインのWidgetに追加
+                    obj03 = Obj03()
+                    obj03.spawn(imgs)
+                    obj03.pos = (x * 100, y * 100)
+                    self.enemies.append(obj03)
+                    self.add_widget(obj03)
+
 
         # 毎秒60回更新処理を実行する
         Clock.schedule_interval(self.update, 1 / 60.0)
@@ -114,35 +120,39 @@ class MainGame(Widget):
         relativeDx = 0  # 相対的x増分
 
         # player系移動処理
-
-        # スクロール処理
-        # player座標 >= 中央 && 速度>0 && ステージに右側がある: プレイヤーは動かず、プレイヤー以外が左へ移動する
-        # player < 中央 - プレイヤー横幅 && 速度<0 && ステージに左側がある: プレイヤーは動かず、プレイヤー以外が右へ移動する
-        # それ以外: プレイヤーの速度 * 時間 でプレイヤーを移動する
-        if self.player.pos[0] >= 0.5 * self.screenWidth and self.player.v[0] > 0 and self.currentX + self.screenWidth < self.stageWidth:
-            playerDx = 0
-            relativeDx = dx * -1
-            self.currentX = self.currentX + dx  # 右スクロール中、現在座標は加算される
-        elif self.player.pos[0] < 0.5 * self.screenWidth - self.player.size[0] and self.player.v[0] < 0 and self.currentX > 0:
-            playerDx = 0
-            relativeDx = dx * -1
-            self.currentX = self.currentX + dx  # 左スクロール中、現在座標は減算される
-        else:
-            playerDx = dx
-            relativeDx = 0
-
+        if self.player.isOK(): # プレイヤーが健在なときのみ発生する移動
+            # スクロール処理
+            # player座標 >= 中央 && 速度>0 && ステージに右側がある: プレイヤーは動かず、プレイヤー以外が左へ移動する
+            # player < 中央 - プレイヤー横幅 && 速度<0 && ステージに左側がある: プレイヤーは動かず、プレイヤー以外が右へ移動する
+            # それ以外: プレイヤーの速度 * 時間 でプレイヤーを移動する
+            if self.player.pos[0] >= 0.5 * self.screenWidth and self.player.v[0] > 0 and self.currentX + self.screenWidth < self.stageWidth:
+                playerDx = 0
+                relativeDx = dx * -1
+                self.currentX = self.currentX + dx  # 右スクロール中、現在座標は加算される
+            elif self.player.pos[0] < 0.5 * self.screenWidth - self.player.size[0] and self.player.v[0] < 0 and self.currentX > 0:
+                playerDx = 0
+                relativeDx = dx * -1
+                self.currentX = self.currentX + dx  # 左スクロール中、現在座標は減算される
+            else:
+                playerDx = dx
+                relativeDx = 0
+        # プレイヤーの移動
         self.player.pos = (self.player.pos[0] + playerDx,
                            self.player.pos[1] + self.player.v[1] * dt)
-        for obj02 in self.objs:
-            obj02.pos = (obj02.pos[0] + relativeDx, obj02.pos[1])
-
         Logger.info('Hoge: player.x={}, screenWidth={}'.format(
             self.player.pos[0], self.screenWidth))
-        # playerは0より左へ移動できない
-        if self.player.pos[0] < 0:
+        # プレイヤーの移動制限
+        if self.player.pos[0] < 0: # playerは0より左へ移動できない
             self.player.pos = (0, self.player.pos[1])
-        elif self.player.pos[0] > self.screenWidth - self.player.width:
+        elif self.player.pos[0] > self.screenWidth - self.player.width: # 画面右端より先へは移動できない
             self.player.pos = (self.screenWidth - self.player.width, self.player.pos[1])
+        # オブジェクトの移動(相対速度的なもの)
+        for obj02 in self.objs:
+            obj02.pos = (obj02.pos[0] + relativeDx, obj02.pos[1])
+        # 敵の移動(相対速度的なもの＋敵自身の移動)
+        for enemy in self.enemies:
+            enemy.pos = (enemy.pos[0] + relativeDx, enemy.pos[1])
+            enemy.move(dt)
 
     def updateMain(self, dt):
         """ 各オブジェクトの状態更新系処理 """
@@ -151,14 +161,23 @@ class MainGame(Widget):
         for obj02 in self.objs:
             # 床がプレイヤーを排他する処理
             obj02.affect(self.player)
+        for enemy in self.enemies:
+            # 敵がプレイヤーを排他する処理
+            enemy.affect(self.player)
 
-        # 状態更新系処理
-        self.player.update(dt)
-
-        if self.player.alive == False:
+        # プレイヤー状態更新系処理
+        if self.player.alive:
+            self.player.update(dt)
+        else:
             self.isGameOver = True
             self.remove_widget(self.player)
-            self.missSound.play()
+
+        # 敵状態更新系処理
+        for enemy in self.enemies:
+            if enemy.alive:
+                enemy.update(dt)
+            else:
+                self.remove_widget(enemy)
 
     """ タップ時処理 """
 
