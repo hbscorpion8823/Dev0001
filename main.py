@@ -131,9 +131,9 @@ class MainGame(Widget):
             else:
                 playerDx = dx
                 relativeDx = 0
-        # プレイヤーの移動
-        self.player.pos = (self.player.pos[0] + playerDx,
-                           self.player.pos[1] + self.player.v[1] * dt)
+            # プレイヤーの移動
+            self.player.pos = (self.player.pos[0] + playerDx,
+                            self.player.pos[1] + self.player.v[1] * dt)
         Logger.info('Hoge: player.x={}, screenWidth={}'.format(
             self.player.pos[0], self.screenWidth))
         # プレイヤーの移動制限

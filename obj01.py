@@ -20,10 +20,13 @@ class ExplosionImage(Image):
 
 """ ゲームオブジェクト共通クラス """
 class BaseObj(Widget):
+    # data
     texture = ObjectProperty(None)
-
+    
+    # param
     lifePoint = NumericProperty(None)
 
+    # flags
     alive = BooleanProperty(True)
     explode = BooleanProperty(False)
     jumping = BooleanProperty(True) # 床と接触するまでは原則的にTrueとする
@@ -207,10 +210,12 @@ class Obj03(BaseObj):
 
         if self.pattern % 2 == 1 and self.pos[0] < target.pos[0] - target.width * 3:
             self.v = (self.v[0] * -1, self.v[1])
+            self.texture.flip_horizontal() # テクスチャ反転
             self.pattern = 2
 
         if self.pattern == 2 and self.pos[0] > target.pos[0] + target.width * 3:
             self.v = (self.v[0] * -1, self.v[1])
+            self.texture.flip_horizontal() # テクスチャ反転
             self.pattern = 3
 
     """ 対象がオブジェクト上方にある場合の処理 """
@@ -228,11 +233,11 @@ class Obj03(BaseObj):
     def leftAffect(self, target):
         if self.isOK():
             target.damaged() # やられる
-            self.alive = False # 自分も消える
+            self.alive = False # 敵も消える
 
     """ 対象がオブジェクト右方にある場合の処理 """
     def rightAffect(self, target):
         if self.isOK():
             target.damaged() # やられる
-            self.alive = False # 自分も消える
+            self.alive = False # 敵も消える
 
