@@ -16,15 +16,14 @@ from kivy.core.audio import SoundLoader
 # kivy.core.window を使用すると端末の方向によってはportraitオリエンテーションになってしまう
 Config.set('graphics', 'resizable', 0)
 
-
+""" ゲームで使用する画像をまとめた1枚画像 """
 class MyImages(Image):
-    """ ゲームで使用する画像をまとめた1枚画像 """
     pass
 
 
+""" メインのゲームウィジェット """
 class MainGame(Widget):
-    """ メインのゲームウィジェット """
-
+    
     # プレイヤー
     player = ObjectProperty(None)
     # MainGame内のオブジェクト（プレイヤー以外）
@@ -40,8 +39,8 @@ class MainGame(Widget):
     # ゲームオーバーフラグ
     isGameOver = BooleanProperty(False)
 
+    """ 初期化処理 """
     def __init__(self, **kwargs):
-        """ 初期化処理 """
 
         # 上位クラスの初期化処理
         super(MainGame, self).__init__()
@@ -96,13 +95,9 @@ class MainGame(Widget):
         # 毎秒60回更新処理を実行する
         Clock.schedule_interval(self.update, 1 / 60.0)
 
+    """ 秒間60回実行されるメイン処理 """
     def update(self, dt):
-        """ 秒間60回実行されるメイン処理
-
-        :type dt: float(time.time()で取得される値)
-        :param dt: 微分積分でよく使用される⊿t的なパラメータ
-
-        """
+        
         if self.isGameOver:
             return
 
@@ -111,8 +106,8 @@ class MainGame(Widget):
         # 更新系処理メイン
         self.updateMain(dt)
 
+    """ 各オブジェクトの移動系処理 """
     def moveMain(self, dt):
-        """ 各オブジェクトの移動系処理 """
 
         # x変化量を出す
         dx = self.player.v[0] * dt
@@ -154,15 +149,27 @@ class MainGame(Widget):
             enemy.pos = (enemy.pos[0] + relativeDx, enemy.pos[1])
             enemy.move(dt)
 
+    """ 各オブジェクトの状態更新系処理 """
     def updateMain(self, dt):
-        """ 各オブジェクトの状態更新系処理 """
 
-        # 作用系処理
+        # プレイヤーと敵のジャンプ中フラグをTrueにする。床からの作用を受けなかった場合はTrueのままになる
+        # プレイヤー
+        self.player.jumping = True
+        for enemy in self.enemies:
+            # 敵
+            enemy.jumping = True
+
+        # 作用系処理(床に接地した場合、ここでジャンプ中フラグがFalseになる)
         for obj02 in self.objs:
             # 床がプレイヤーを排他する処理
             obj02.affect(self.player)
+            for enemy in self.enemies:
+                # 床が敵を排他する処理
+                obj02.affect(enemy)
+
+
         for enemy in self.enemies:
-            # 敵がプレイヤーを排他する処理
+            # 敵がプレイヤーに作用する処理
             enemy.affect(self.player)
 
         # プレイヤー状態更新系処理
@@ -171,6 +178,7 @@ class MainGame(Widget):
         else:
             self.isGameOver = True
             self.remove_widget(self.player)
+
 
         # 敵状態更新系処理
         for enemy in self.enemies:
@@ -182,25 +190,14 @@ class MainGame(Widget):
     """ タップ時処理 """
 
     def on_touch_down(self, touch):
-        """ タップ時処理
-
-        :type touch: tupple
-        :param touch: タッチ座標
-
-        """
 
         if self.player is None:
             pass
         elif self.player.collide_point(touch.x, touch.y):
             self.player.v = (0, 0)
 
+    """ ドラッグ（スワイプ？）時処理 """
     def on_touch_move(self, touch):
-        """ ドラッグ（スワイプ？）時処理 
-
-        :type touch: tupple
-        :param touch: タッチ座標
-
-        """
 
         # move座標を記録（時間もあわせて記録）
         pt = PosTime(touch.pos, time.time())
@@ -220,10 +217,11 @@ class MainGame(Widget):
             pass
         elif math.fabs(sinTheta) > 0.5 * math.sqrt(2):
             self.player.v = (self.player.v[0], PosTimeUtil.getVy(p1, p2))
+            self.player.jumping = True
         else:
             self.player.v = (PosTimeUtil.getVx(p1, p2), self.player.v[1])
 
-
+""" メインのクラス(Androidプログラムで言うところのActivity) """
 class MainApp(App):
 
     def build(self):

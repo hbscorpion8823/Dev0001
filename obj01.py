@@ -18,10 +18,16 @@ class ExplosionImage(Image):
 
 class BaseObj(Widget):
     texture = ObjectProperty(None)
+
+    lifePoint = 1
+
     alive = BooleanProperty(True)
-    SQRT2 = math.sqrt(2) # よく使うsqrt2は定数として持たせて都度計算するのを回避させる
     explode = BooleanProperty(False)
-    explodingTime = 0
+    jumping = BooleanProperty(True) # 床と接触するまでは原則的にTrueとする
+
+    SQRT2 = math.sqrt(2) # よく使うsqrt2は定数として持たせて都度計算するのを回避させる
+    
+    duration = 0
 
     def spawn(self, img):
         t01 = TextureUtil.getTexture(img, self.region)
@@ -32,9 +38,9 @@ class BaseObj(Widget):
 
     def update(self, dt):
         if self.explode:
-            self.explodingTime += dt
+            self.duration += dt
 
-        if self.explodingTime > 0.3:
+        if self.duration > 0.3:
             self.alive = False
 
     def affect(self, _obj01):
@@ -72,12 +78,12 @@ class BaseObj(Widget):
             # 右にオブジェクトがあるとき判定（物体から見て左にプレイヤーがいる状態）
             # 0.75 PI ＜ X ＜ 1.25 PI
             elif obj02_left < obj01_right and (cosX < -0.5 * self.SQRT2 and sinX > -0.5 * self.SQRT2 and sinX < 0.5 * self.SQRT2):
-                Logger.info('Hoge: case3')
+                Logger.info('Hoge: case3, self.pos={}, target.pos={}'.format(self.pos, _obj01.pos))
                 self.leftAffect(_obj01)
             # 左にオブジェクトがあるとき判定（物体から見て右にプレイヤーがいる状態）
             # 1.75 PI ＜ X ＜ 2.25 PI
             elif obj02_right > obj01_left and (cosX > 0.5 * self.SQRT2 and sinX > -0.5 * self.SQRT2 and sinX < 0.5 * self.SQRT2):
-                Logger.info('Hoge: case4')
+                Logger.info('Hoge: case4, self.pos={}, target.pos={}'.format(self.pos, _obj01.pos))
                 self.rightAffect(_obj01)
 
             Logger.info('Hoge: player2=({},{})'.format(_obj01.pos[0], _obj01.pos[1])) 
@@ -101,13 +107,15 @@ class BaseObj(Widget):
     def isOK(self):
         return self.alive and not self.explode
 
-    def defeat(self, target):
-        if not target.explode:
+    def damaged(self):
+        self.lifePoint -= 1
+        if self.lifePoint <= 0 and self.isOK():
             eximg = ExplosionImage()
-            eximg.pos = target.pos
-            eximg.size = target.size
-            target.add_widget(eximg)
-            target.explode = True
+            eximg.pos = self.pos
+            eximg.size = self.size
+            self.add_widget(eximg)
+            self.explode = True
+            self.duration = 0
             explosionSound.play()
 
 class Obj01(BaseObj):
@@ -133,42 +141,44 @@ class Obj01(BaseObj):
             self.alive = False
 
         # 速度を加算
-        self.v = (self.v[0], self.v[1] - dt * self.g)  # 下向きに重力加速度による速度加算が行われる
+        if self.jumping:
+            self.v = (self.v[0], self.v[1] - dt * self.g)  # 下向きに重力加速度による速度加算が行われる
 
 
 
 
 class Obj02(BaseObj):
-    def upAffect(self, _obj01):
+    def upAffect(self, target):
         """ 対象がオブジェクト上方にある場合の処理 """
-        _obj01.pos[1] = self.pos[1] + self.height
-        _obj01.v = (_obj01.v[0], 0)  # 床突き抜け回避処理
+        target.pos[1] = self.pos[1] + self.height
+        target.v = (target.v[0], 0)  # 床突き抜け回避処理
+        target.jumping = False
 
-    def downAffect(self, _obj01):
+    def downAffect(self, target):
         """ 対象がオブジェクト下方にある場合の処理 """
-        _obj01.pos[1] = self.pos[1] - _obj01.height
-        _obj01.v = (_obj01.v[0], -1 * _obj01.v[1]) # 頭をぶつけたので速度反転
+        target.pos[1] = self.pos[1] - target.height
+        target.v = (target.v[0], -1 * target.v[1]) # 頭をぶつけたので速度反転
 
-    def leftAffect(self, _obj01):
+    def leftAffect(self, target):
         """ 対象がオブジェクト左方にある場合の処理 """
-        _obj01.pos[0] = self.pos[0] - _obj01.width
-        _obj01.v = (0, _obj01.v[1]) # 壁登り回避処理
+        target.pos[0] = self.pos[0] - target.width
+        target.v = (0, target.v[1]) # 壁登り回避処理
 
-    def rightAffect(self, _obj01):
+    def rightAffect(self, target):
         """ 対象がオブジェクト右方にある場合の処理 """
-        _obj01.pos[0] = self.pos[0] + self.width
-        _obj01.v = (0, _obj01.v[1]) # 壁登り回避処理
+        target.pos[0] = self.pos[0] + self.width
+        target.v = (0, target.v[1]) # 壁登り回避処理
 
 
 class Obj03(BaseObj):
 
-    v = (0, 0)
+    v = (-100, 0)
 
     g = 9.8 * 200
 
     def move(self, dt):
         """ 移動処理 """ 
-        pass
+        self.pos = (self.pos[0] + self.v[0] * dt, self.pos[1] + self.v[1] * dt)
 
 
     def update(self, dt):
@@ -180,27 +190,29 @@ class Obj03(BaseObj):
             self.alive = False
 
         # 速度を加算
-        self.v = (self.v[0], self.v[1] - dt * self.g)  # 下向きに重力加速度による速度加算が行われる
+        if self.jumping:
+            self.v = (self.v[0], self.v[1] - dt * self.g)  # 下向きに重力加速度による速度加算が行われる
 
-    def upAffect(self, _obj01):
+    def upAffect(self, target):
         """ 対象がオブジェクト上方にある場合の処理 """
         if self.isOK():
-            _obj01.v = (_obj01.v[0], min(_obj01.v[1] * -0.5, 1200))
-            self.defeat(self)
+            target.v = (target.v[0], min(target.v[1] * -0.5, 1200))
+            self.damaged() # ふんだら倒せる
 
-    def downAffect(self, _obj01):
+    def downAffect(self, target):
         """ 対象がオブジェクト下方にある場合の処理 """
         if self.isOK():
-            self.defeat(self)
+            self.damaged() # 頭突きで倒せる
 
-    def leftAffect(self, _obj01):
+    def leftAffect(self, target):
         """ 対象がオブジェクト左方にある場合の処理 """
         if self.isOK():
-            self.defeat(_obj01)
+            target.damaged() # やられる
+            self.alive = False # 自分も消える
 
-
-    def rightAffect(self, _obj01):
+    def rightAffect(self, target):
         """ 対象がオブジェクト右方にある場合の処理 """
         if self.isOK():
-            self.defeat(_obj01)
+            target.damaged() # やられる
+            self.alive = False # 自分も消える
 
