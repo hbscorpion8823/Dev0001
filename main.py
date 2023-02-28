@@ -169,6 +169,8 @@ class MainGame(Widget):
 
 
         for enemy in self.enemies:
+            # 敵がプレイヤーを確認して行動パターンを決定したりする処理
+            enemy.watch(self.player, self.screenWidth)
             # 敵がプレイヤーに作用する処理
             enemy.affect(self.player)
 

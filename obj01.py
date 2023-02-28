@@ -1,5 +1,5 @@
 from kivy.uix.scatter import Scatter
-from kivy.properties import ObjectProperty, BooleanProperty
+from kivy.properties import ObjectProperty, BooleanProperty, NumericProperty
 from textureutil import TextureUtil
 from kivy.uix.widget import Widget
 from kivy.logger import Logger
@@ -12,14 +12,17 @@ from kivy.core.audio import SoundLoader
 # SE
 missSound = SoundLoader.load('./sounds/miss.mp3')
 explosionSound = SoundLoader.load('./sounds/explosion.mp3')
+shout1Sound = SoundLoader.load('./sounds/shout1.mp3')
+damagedSound = SoundLoader.load('./sounds/shout2.mp3')
 
 class ExplosionImage(Image):
     pass
 
+""" ゲームオブジェクト共通クラス """
 class BaseObj(Widget):
     texture = ObjectProperty(None)
 
-    lifePoint = 1
+    lifePoint = NumericProperty(None)
 
     alive = BooleanProperty(True)
     explode = BooleanProperty(False)
@@ -28,6 +31,7 @@ class BaseObj(Widget):
     SQRT2 = math.sqrt(2) # よく使うsqrt2は定数として持たせて都度計算するのを回避させる
     
     duration = 0
+    v = (0, 0)
 
     def spawn(self, img):
         t01 = TextureUtil.getTexture(img, self.region)
@@ -117,20 +121,20 @@ class BaseObj(Widget):
             self.explode = True
             self.duration = 0
             explosionSound.play()
+        else:
+            damagedSound.play()
 
 class Obj01(BaseObj):
 
-    v = (0, 0)
-
     g = 9.8 * 200
 
+    """ 移動処理
+        プレイヤーの移動処理はステージ全体の移動処理と連動しているため、ここには実装しない
+    """ 
     def move(self, dt):
-        """ 移動処理
-            プレイヤーの移動処理はステージ全体の移動処理と連動しているため、ここには実装しない
-        """ 
         pass
 
-
+    """ 更新処理 """
     def update(self, dt):
 
         super(Obj01, self).update(dt)
@@ -172,17 +176,18 @@ class Obj02(BaseObj):
 
 class Obj03(BaseObj):
 
+    pattern = 0
+
     v = (-100, 0)
 
     g = 9.8 * 200
 
+    """ 移動処理 """
     def move(self, dt):
-        """ 移動処理 """ 
         self.pos = (self.pos[0] + self.v[0] * dt, self.pos[1] + self.v[1] * dt)
 
-
+    """ 更新処理 """
     def update(self, dt):
-
         super(Obj03, self).update(dt)
 
         # 落ちたら生存フラグをFalseにする
@@ -193,25 +198,40 @@ class Obj03(BaseObj):
         if self.jumping:
             self.v = (self.v[0], self.v[1] - dt * self.g)  # 下向きに重力加速度による速度加算が行われる
 
+    """ 敵がプレイヤーの座標を見て行動パターンを決定するための処理。何画面離れたところに来たら、等のチェックのために画面サイズを引数に使用する """
+    def watch(self, target, screenWidth):
+        if self.pattern == 0 and self.pos[0] > target.pos[0] and self.pos[0] - target.pos[0] < screenWidth:
+            self.pattern = 1
+            shout1Sound.play()
+            self.v = (-160, self.v[1])
+
+        if self.pattern % 2 == 1 and self.pos[0] < target.pos[0] - target.width * 3:
+            self.v = (self.v[0] * -1, self.v[1])
+            self.pattern = 2
+
+        if self.pattern == 2 and self.pos[0] > target.pos[0] + target.width * 3:
+            self.v = (self.v[0] * -1, self.v[1])
+            self.pattern = 3
+
+    """ 対象がオブジェクト上方にある場合の処理 """
     def upAffect(self, target):
-        """ 対象がオブジェクト上方にある場合の処理 """
         if self.isOK():
             target.v = (target.v[0], min(target.v[1] * -0.5, 1200))
             self.damaged() # ふんだら倒せる
 
+    """ 対象がオブジェクト下方にある場合の処理 """
     def downAffect(self, target):
-        """ 対象がオブジェクト下方にある場合の処理 """
         if self.isOK():
             self.damaged() # 頭突きで倒せる
 
+    """ 対象がオブジェクト左方にある場合の処理 """
     def leftAffect(self, target):
-        """ 対象がオブジェクト左方にある場合の処理 """
         if self.isOK():
             target.damaged() # やられる
             self.alive = False # 自分も消える
 
+    """ 対象がオブジェクト右方にある場合の処理 """
     def rightAffect(self, target):
-        """ 対象がオブジェクト右方にある場合の処理 """
         if self.isOK():
             target.damaged() # やられる
             self.alive = False # 自分も消える
