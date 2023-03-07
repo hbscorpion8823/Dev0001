@@ -243,13 +243,14 @@ class Obj03(BaseObj):
             self.alive = False # 敵も消える
 
 class Obj04(BaseObj):
-    def affect(self, _obj01):
-        if self.isOK() and self.collide_widget(_obj01):
+    def affect(self, target):
+        if self.isOK() and self.collide_widget(target):
             clearSound.play()
             self.alive = False
 
 class Obj05(BaseObj):
-    def affect(self, _obj01):
-        if self.isOK() and self.collide_widget(_obj01):
+    def affect(self, target):
+        if self.isOK() and self.collide_widget(target):
             healSound.play()
+            target.lifePoint += 1
             self.alive = False

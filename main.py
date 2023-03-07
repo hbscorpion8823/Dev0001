@@ -118,7 +118,6 @@ class MainGame(Widget):
     def update(self, dt):
         
         if self.isGameOver:
-            self.txtGameOver.text = str('GAME OVER')
             return
 
         # 移動系処理メイン
@@ -198,13 +197,18 @@ class MainGame(Widget):
         if self.player.alive:
             self.player.update(dt)
         else:
+            self.txtGameOver.text = str('GAME OVER')
             self.isGameOver = True
             self.objectLayer.remove_widget(self.player)
 
         # オブジェクト状態更新系処理
-        for obj02 in self.objs:
-            if obj02.alive == False:
-                self.objectLayer.remove_widget(obj02)
+        for obj in self.objs:
+            if obj.alive == False:
+                self.objectLayer.remove_widget(obj)
+                if isinstance(obj, Obj04):
+                    self.txtGameOver.text = 'Congraturations!'
+                    self.isGameOver = True
+                self.objs.remove(obj)
 
 
         # 敵状態更新系処理
