@@ -3,7 +3,9 @@
 #:include force other.kv
 
 <MainGame>:
-    layout01: l01
+    objectLayer: l01 # オブジェクト等を格納するレイヤー（最背面想定）
+    workingLayer: l02 # 文字等を配置するレイヤー
+    txtGameOver: txtGameOver # ゲームオーバー時テキスト
 
     FloatLayout:
         size: root.size
@@ -15,6 +17,25 @@
                 # self here refers to the widget i.e FloatLayout
                 pos: self.pos
                 size: self.size
+
+    FloatLayout:
+        size: root.size
+        id: l02
+        canvas.before:
+            Color:
+                rgba: 0, 0, 0, 0
+            Rectangle:
+                # self here refers to the widget i.e FloatLayout
+                pos: self.pos
+                size: self.size
+        Label:
+            text: ''
+            id: txtGameOver
+            font_size: 35
+            size_hint: None, None
+            pos_hint: {'x': 0.4, 'y': 0.5}
+
+
 
 <MyImages>:
     source: 'images001.png'

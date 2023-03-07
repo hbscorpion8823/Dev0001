@@ -8,6 +8,7 @@
 
 <BaseObj>:
     lifePoint: 1
+    g: 0
     size_hint: None, None
     canvas:
         Color: 
@@ -19,6 +20,8 @@
 
 <Obj01>:
     lifePoint: 1
+    g: 9.8 * 200
+    maxLifePoint: 3
     region: 0, 64, 64, 64
     size: 100, 100
     pos: -350, -350
@@ -30,6 +33,17 @@
     pos: -350, -350
 
 <Obj03>:
+    g: 9.8 * 200
     region: 64, 64, 64, 64
+    size: 100, 100
+    pos: -350, -350
+
+<Obj04>:
+    region: 0, 192, 64, 64
+    size: 100, 100
+    pos: -350, -350
+
+<Obj05>:
+    region: 64, 192, 64, 64
     size: 100, 100
     pos: -350, -350

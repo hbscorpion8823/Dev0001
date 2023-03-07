@@ -14,6 +14,10 @@ missSound = SoundLoader.load('./sounds/miss.mp3')
 explosionSound = SoundLoader.load('./sounds/explosion.mp3')
 shout1Sound = SoundLoader.load('./sounds/shout1.mp3')
 damagedSound = SoundLoader.load('./sounds/shout2.mp3')
+healSound = SoundLoader.load('./sounds/heal.mp3')
+clearSound = SoundLoader.load('./sounds/clear.mp3')
+
+SQRT2 = math.sqrt(2) # よく使うsqrt2は定数として持たせて都度計算するのを回避させる
 
 class ExplosionImage(Image):
     pass
@@ -22,19 +26,20 @@ class ExplosionImage(Image):
 class BaseObj(Widget):
     # data
     texture = ObjectProperty(None)
-    
+
     # param
-    lifePoint = NumericProperty(None)
+    lifePoint = NumericProperty(None) # ライフポイント
+    v = (0, 0) # x方向、y方向の速度(px/s)
+    duration = 0 # オブジェクトの作業時間（爆発時間や停止時間等に仕様）
+    g = NumericProperty(None)
 
     # flags
-    alive = BooleanProperty(True)
-    explode = BooleanProperty(False)
-    jumping = BooleanProperty(True) # 床と接触するまでは原則的にTrueとする
-
-    SQRT2 = math.sqrt(2) # よく使うsqrt2は定数として持たせて都度計算するのを回避させる
+    alive = BooleanProperty(True) # 生存フラグ
+    explode = BooleanProperty(False) # 爆発フラグ(Trueになったとき、実質的にしんでいる)
+    jumping = BooleanProperty(True) # ジャンプフラグ。床と接触するまでは原則的にTrueとする
     
-    duration = 0
-    v = (0, 0)
+    
+    
 
     def spawn(self, img):
         t01 = TextureUtil.getTexture(img, self.region)
@@ -63,7 +68,7 @@ class BaseObj(Widget):
         obj01_right = _obj01.pos[0] + self.width
         obj01_top = _obj01.pos[1] + self.height
 
-        # 衝突判定(現在の衝突状態と直前の座標の両面から勘案)
+        # 衝突判定(相対ベクトルの角度を用いて判断。大きさが違う場合は判定方法を見直す必要があると思われる)
         if self.collide_widget(_obj01):
 
             # 対象のオブジェクトとプレイヤーleftBottom座標(pos)を直線で結び、x軸に対しての角度を考える
@@ -74,22 +79,22 @@ class BaseObj(Widget):
             Logger.info('Hoge: player1=({},{})'.format(_obj01.pos[0], _obj01.pos[1]))
             # 地に足つける判定（物体から見て上にプレイヤーがいる状態）
             # 0.25 PI ≦ X ≦ 0.75 PI
-            if obj02_top >= obj01_bottom and (sinX >= 0.5 * self.SQRT2 and cosX >= -0.5 * self.SQRT2 and cosX <= 0.5 * self.SQRT2):
+            if obj02_top >= obj01_bottom and (sinX >= 0.5 * SQRT2 and cosX >= -0.5 * SQRT2 and cosX <= 0.5 * SQRT2):
                 Logger.info('Hoge: case1')
                 self.upAffect(_obj01)
             # 天井に頭ぶつける判定（物体から見て下にプレイヤーがいる状態）
             # 1.25 PI ≦ X ≦ 1.75 PI
-            elif obj02_bottom <= obj01_top and (sinX <= -0.5 * self.SQRT2 and cosX >= -0.5 * self.SQRT2 and cosX <= 0.5 * self.SQRT2):
+            elif obj02_bottom <= obj01_top and (sinX <= -0.5 * SQRT2 and cosX >= -0.5 * SQRT2 and cosX <= 0.5 * SQRT2):
                 Logger.info('Hoge: case2')
                 self.downAffect(_obj01)
             # 右にオブジェクトがあるとき判定（物体から見て左にプレイヤーがいる状態）
             # 0.75 PI ＜ X ＜ 1.25 PI
-            elif obj02_left < obj01_right and (cosX < -0.5 * self.SQRT2 and sinX > -0.5 * self.SQRT2 and sinX < 0.5 * self.SQRT2):
+            elif obj02_left < obj01_right and (cosX < -0.5 * SQRT2 and sinX > -0.5 * SQRT2 and sinX < 0.5 * SQRT2):
                 Logger.info('Hoge: case3, self.pos={}, target.pos={}'.format(self.pos, _obj01.pos))
                 self.leftAffect(_obj01)
             # 左にオブジェクトがあるとき判定（物体から見て右にプレイヤーがいる状態）
-            # 1.75 PI ＜ X ＜ 2.25 PI
-            elif obj02_right > obj01_left and (cosX > 0.5 * self.SQRT2 and sinX > -0.5 * self.SQRT2 and sinX < 0.5 * self.SQRT2):
+            # 1.75 PI ＜ X ＜ 2.25 PI(0.25PI)
+            elif obj02_right > obj01_left and (cosX > 0.5 * SQRT2 and sinX > -0.5 * SQRT2 and sinX < 0.5 * SQRT2):
                 Logger.info('Hoge: case4, self.pos={}, target.pos={}'.format(self.pos, _obj01.pos))
                 self.rightAffect(_obj01)
 
@@ -129,7 +134,7 @@ class BaseObj(Widget):
 
 class Obj01(BaseObj):
 
-    g = 9.8 * 200
+    maxLifePoint = NumericProperty(None)
 
     """ 移動処理
         プレイヤーの移動処理はステージ全体の移動処理と連動しているため、ここには実装しない
@@ -180,10 +185,6 @@ class Obj02(BaseObj):
 class Obj03(BaseObj):
 
     pattern = 0
-
-    v = (-100, 0)
-
-    g = 9.8 * 200
 
     """ 移動処理 """
     def move(self, dt):
@@ -241,3 +242,14 @@ class Obj03(BaseObj):
             target.damaged() # やられる
             self.alive = False # 敵も消える
 
+class Obj04(BaseObj):
+    def affect(self, _obj01):
+        if self.isOK() and self.collide_widget(_obj01):
+            clearSound.play()
+            self.alive = False
+
+class Obj05(BaseObj):
+    def affect(self, _obj01):
+        if self.isOK() and self.collide_widget(_obj01):
+            healSound.play()
+            self.alive = False

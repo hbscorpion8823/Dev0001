@@ -2,7 +2,7 @@ from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
 from kivy.uix.image import Image
-from obj01 import Obj01, Obj02, Obj03
+from obj01 import Obj01, Obj02, Obj03, Obj04, Obj05
 from kivy.config import Config
 from kivy.properties import ObjectProperty, NumericProperty, BooleanProperty
 from postime import PosTime, PosTimeUtil
@@ -11,6 +11,7 @@ import math
 from kivy.logger import Logger
 from kivy.core.window import Window
 from kivy.core.audio import SoundLoader
+from kivy.uix.label import Label
 
 # 勝手にportraitオリエンテーションにするのを防ぐためのおまじない
 # kivy.core.window を使用すると端末の方向によってはportraitオリエンテーションになってしまう
@@ -20,6 +21,9 @@ Config.set('graphics', 'resizable', 0)
 class MyImages(Image):
     pass
 
+
+class MyLabel(Label):
+    pass
 
 """ メインのゲームウィジェット """
 class MainGame(Widget):
@@ -75,30 +79,46 @@ class MainGame(Widget):
                     self.player = Obj01()
                     self.player.spawn(imgs)
                     self.player.pos = (x * 100, y * 100)
-                    self.add_widget(self.player)
+                    self.objectLayer.add_widget(self.player)
                 elif tiles[x] == "2":
                     # obj02を初期化し、メインのWidgetに追加
                     obj02 = Obj02()
                     obj02.spawn(imgs)
                     obj02.pos = (x * 100, y * 100)
                     self.objs.append(obj02)
-                    self.add_widget(obj02)
+                    self.objectLayer.add_widget(obj02)
                 elif tiles[x] == "3":
-                    # obj02を初期化し、メインのWidgetに追加
+                    # obj03を初期化し、メインのWidgetに追加
                     obj03 = Obj03()
                     obj03.spawn(imgs)
                     obj03.pos = (x * 100, y * 100)
                     self.enemies.append(obj03)
-                    self.add_widget(obj03)
-
+                    self.objectLayer.add_widget(obj03)
+                elif tiles[x] == "4":
+                    # obj04を初期化し、メインのWidgetに追加
+                    obj04 = Obj04()
+                    obj04.spawn(imgs)
+                    obj04.pos = (x * 100, y * 100)
+                    self.objs.append(obj04)
+                    self.objectLayer.add_widget(obj04)
+                elif tiles[x] == "5":
+                    # obj05を初期化し、メインのWidgetに追加
+                    obj05 = Obj05()
+                    obj05.spawn(imgs)
+                    obj05.pos = (x * 100, y * 100)
+                    self.objs.append(obj05)
+                    self.objectLayer.add_widget(obj05)
 
         # 毎秒60回更新処理を実行する
         Clock.schedule_interval(self.update, 1 / 60.0)
+
+
 
     """ 秒間60回実行されるメイン処理 """
     def update(self, dt):
         
         if self.isGameOver:
+            self.txtGameOver.text = str('GAME OVER')
             return
 
         # 移動系処理メイン
@@ -124,7 +144,7 @@ class MainGame(Widget):
                 playerDx = 0
                 relativeDx = dx * -1
                 self.currentX = self.currentX + dx  # 右スクロール中、現在座標は加算される
-            elif self.player.pos[0] < 0.5 * self.screenWidth - self.player.size[0] and self.player.v[0] < 0 and self.currentX > 0:
+            elif self.player.pos[0] < 0.5 * self.screenWidth and self.player.v[0] < 0 and self.currentX > 0:
                 playerDx = 0
                 relativeDx = dx * -1
                 self.currentX = self.currentX + dx  # 左スクロール中、現在座標は減算される
@@ -179,7 +199,12 @@ class MainGame(Widget):
             self.player.update(dt)
         else:
             self.isGameOver = True
-            self.remove_widget(self.player)
+            self.objectLayer.remove_widget(self.player)
+
+        # オブジェクト状態更新系処理
+        for obj02 in self.objs:
+            if obj02.alive == False:
+                self.objectLayer.remove_widget(obj02)
 
 
         # 敵状態更新系処理
@@ -187,7 +212,7 @@ class MainGame(Widget):
             if enemy.alive:
                 enemy.update(dt)
             else:
-                self.remove_widget(enemy)
+                self.objectLayer.remove_widget(enemy)
 
     """ タップ時処理 """
 
