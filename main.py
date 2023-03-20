@@ -17,11 +17,17 @@ from kivy.uix.label import Label
 # kivy.core.window を使用すると端末の方向によってはportraitオリエンテーションになってしまう
 Config.set('graphics', 'resizable', 0)
 
+""" タイトル画面 """
+class TitleScreen(Widget):
+    def pressStartButton(self):
+        # 画面遷移： 次画面を生成後、自身をWindowから消し次画面をWindowに追加する
+        mg = MainGame()
+        Window.remove_widget(self)
+        Window.add_widget(mg)
+
 """ ゲームで使用する画像をまとめた1枚画像 """
 class MyImages(Image):
     pass
-
-
 
 """ メインのゲームウィジェット """
 class MainGame(Widget):
@@ -254,8 +260,9 @@ class MainGame(Widget):
 class MainApp(App):
 
     def build(self):
-        mc = MainGame()
-        return mc
+        # タイトル画面をアプリケーションに設定する
+        ts = TitleScreen()
+        return ts
 
 
 if __name__ == '__main__':

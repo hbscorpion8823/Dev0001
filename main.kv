@@ -2,6 +2,18 @@
 
 #:include force other.kv
 
+<TitleScreen>:
+    BoxLayout:
+        size: root.size
+        orientation:'vertical'
+        Label:
+            text:'Awesome Game'
+        Button:
+            id: startButton
+            text:'Game Start'
+            on_press: root.pressStartButton()
+
+
 <MainGame>:
     objectLayer: l01 # オブジェクト等を格納するレイヤー（最背面想定）
     workingLayer: l02 # 文字等を配置するレイヤー
