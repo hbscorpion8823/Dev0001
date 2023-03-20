@@ -22,8 +22,6 @@ class MyImages(Image):
     pass
 
 
-class MyLabel(Label):
-    pass
 
 """ メインのゲームウィジェット """
 class MainGame(Widget):
