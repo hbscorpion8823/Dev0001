@@ -12,6 +12,7 @@ from kivy.logger import Logger
 from kivy.core.window import Window
 from kivy.core.audio import SoundLoader
 from kivy.uix.label import Label
+from kivy.uix.button import Button
 
 # 勝手にportraitオリエンテーションにするのを防ぐためのおまじない
 # kivy.core.window を使用すると端末の方向によってはportraitオリエンテーションになってしまう
@@ -24,6 +25,10 @@ class TitleScreen(Widget):
         mg = MainGame()
         Window.remove_widget(self)
         Window.add_widget(mg)
+
+""" タイトル画面遷移ボタン """
+class TitleButton(Button):
+    pass
 
 """ ゲームで使用する画像をまとめた1枚画像 """
 class MyImages(Image):
@@ -117,7 +122,6 @@ class MainGame(Widget):
         Clock.schedule_interval(self.update, 1 / 60.0)
 
 
-
     """ 秒間60回実行されるメイン処理 """
     def update(self, dt):
         
@@ -201,20 +205,15 @@ class MainGame(Widget):
         if self.player.alive:
             self.player.update(dt)
         else:
-            self.txtGameOver.text = str('GAME OVER')
-            self.isGameOver = True
+            self.finishGame('GAME OVER')
             self.objectLayer.remove_widget(self.player)
-
         # オブジェクト状態更新系処理
         for obj in self.objs:
             if obj.alive == False:
                 self.objectLayer.remove_widget(obj)
                 if isinstance(obj, Obj04):
-                    self.txtGameOver.text = 'Congraturations!'
-                    self.isGameOver = True
+                    self.finishGame('Congraturations!')
                 self.objs.remove(obj)
-
-
         # 敵状態更新系処理
         for enemy in self.enemies:
             if enemy.alive:
@@ -222,14 +221,28 @@ class MainGame(Widget):
             else:
                 self.objectLayer.remove_widget(enemy)
 
+    """ タイトルボタン押下処理(self=メインのゲームウィジェット, instance=ボタンインスタンス) """
+    def pressTitleButton(self, instance):
+        # 画面遷移： 次画面を生成後、自身をWindowから消し次画面をWindowに追加する
+        ts = TitleScreen()
+        Window.remove_widget(self)
+        Window.add_widget(ts)
+
+    """ ゲームオーバー/クリア処理 """
+    def finishGame(self, text):
+        self.txtGameOver.text = str(text)
+        self.isGameOver = True
+        button = TitleButton()
+        button.bind(on_press=self.pressTitleButton)
+        self.objectLayer.add_widget(button)
+
     """ タップ時処理 """
-
     def on_touch_down(self, touch):
+        super(MainGame, self).on_touch_down(touch) # FloatLayout内でボタンを押すのに必要な処理
 
-        if self.player is None:
-            pass
-        elif self.player.collide_point(touch.x, touch.y):
-            self.player.v = (0, 0)
+        if self.player is not None and self.player.collide_point(touch.x, touch.y):
+            self.player.v = (0, 0) # プレイヤーをタップしたら止まる
+
 
     """ ドラッグ（スワイプ？）時処理 """
     def on_touch_move(self, touch):

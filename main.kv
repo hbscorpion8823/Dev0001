@@ -2,17 +2,22 @@
 
 #:include force other.kv
 
+<TitleButton@Button>: # タイトル画面遷移ボタン
+    text: 'title'
+    size_hint: None, None
+    size: 300, 80
+    pos_hint: {'x': 0.3, 'y': 0.4}
+
 <TitleScreen>:
     BoxLayout:
         size: root.size
         orientation:'vertical'
         Label:
             text:'Awesome Game'
-        Button:
+        Button: # ゲーム画面遷移ボタン
             id: startButton
             text:'Game Start'
             on_press: root.pressStartButton()
-
 
 <MainGame>:
     objectLayer: l01 # オブジェクト等を格納するレイヤー（最背面想定）
@@ -40,14 +45,13 @@
                 # self here refers to the widget i.e FloatLayout
                 pos: self.pos
                 size: self.size
+
         Label:
             text: ''
             id: txtGameOver
             font_size: 35
             size_hint: None, None
             pos_hint: {'x': 0.4, 'y': 0.5}
-
-
 
 <MyImages>:
     source: 'images001.png'
