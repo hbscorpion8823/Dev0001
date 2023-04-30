@@ -54,8 +54,15 @@ class BaseObj(Widget):
 
         if self.duration > 0.3:
             self.alive = False
+    
+    def centerPos(self):
+        return (self.center_x, self.center_y)
 
     def affect(self, _obj01):
+
+        if self is None or _obj01 is None:
+            return # Noneに対しては処理を行わない(NullPointer対策)
+
         # オブジェクト left, bottom, right, top
         obj02_left = self.pos[0]
         obj02_bottom = self.pos[1]
@@ -68,37 +75,37 @@ class BaseObj(Widget):
         obj01_right = _obj01.pos[0] + self.width
         obj01_top = _obj01.pos[1] + self.height
 
+        # obj01の横座標がobj02の横座標に対し、接触を考慮しなくて良い状態の場合、以下の処理をスキップする  
+        if (obj01_left > obj02_right) or (obj01_right < obj02_left):
+            return
+
         # 衝突判定(相対ベクトルの角度を用いて判断。大きさが違う場合は判定方法を見直す必要があると思われる)
         if self.collide_widget(_obj01):
 
+            centerPos0 = self.centerPos()
+            centerPos1 = _obj01.centerPos()
+
             # 対象のオブジェクトとプレイヤーleftBottom座標(pos)を直線で結び、x軸に対しての角度を考える
             # 上記ベクトルのcosとsinを取得する
-            cosX = PosTimeUtil.getCosTheta(PosTime(self.pos), PosTime(_obj01.pos))
-            sinX = PosTimeUtil.getSinTheta(PosTime(self.pos), PosTime(_obj01.pos))
+            cosX = PosTimeUtil.getCosTheta(PosTime(centerPos0), PosTime(centerPos1))
+            sinX = PosTimeUtil.getSinTheta(PosTime(centerPos0), PosTime(centerPos1))
 
-            Logger.info('Hoge: player1=({},{})'.format(_obj01.pos[0], _obj01.pos[1]))
             # 地に足つける判定（物体から見て上にプレイヤーがいる状態）
             # 0.25 PI ≦ X ≦ 0.75 PI
             if obj02_top >= obj01_bottom and (sinX >= 0.5 * SQRT2 and cosX >= -0.5 * SQRT2 and cosX <= 0.5 * SQRT2):
-                Logger.info('Hoge: case1')
                 self.upAffect(_obj01)
             # 天井に頭ぶつける判定（物体から見て下にプレイヤーがいる状態）
             # 1.25 PI ≦ X ≦ 1.75 PI
             elif obj02_bottom <= obj01_top and (sinX <= -0.5 * SQRT2 and cosX >= -0.5 * SQRT2 and cosX <= 0.5 * SQRT2):
-                Logger.info('Hoge: case2')
                 self.downAffect(_obj01)
             # 右にオブジェクトがあるとき判定（物体から見て左にプレイヤーがいる状態）
             # 0.75 PI ＜ X ＜ 1.25 PI
             elif obj02_left < obj01_right and (cosX < -0.5 * SQRT2 and sinX > -0.5 * SQRT2 and sinX < 0.5 * SQRT2):
-                Logger.info('Hoge: case3, self.pos={}, target.pos={}'.format(self.pos, _obj01.pos))
                 self.leftAffect(_obj01)
             # 左にオブジェクトがあるとき判定（物体から見て右にプレイヤーがいる状態）
             # 1.75 PI ＜ X ＜ 2.25 PI(0.25PI)
             elif obj02_right > obj01_left and (cosX > 0.5 * SQRT2 and sinX > -0.5 * SQRT2 and sinX < 0.5 * SQRT2):
-                Logger.info('Hoge: case4, self.pos={}, target.pos={}'.format(self.pos, _obj01.pos))
                 self.rightAffect(_obj01)
-
-            Logger.info('Hoge: player2=({},{})'.format(_obj01.pos[0], _obj01.pos[1])) 
 
     def upAffect(self, _obj01):
         """ 対象がオブジェクト上方にある場合の処理 """

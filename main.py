@@ -59,7 +59,6 @@ class MainGame(Widget):
         super(MainGame, self).__init__()
 
         # デバイスの画面解像度
-        Logger.info('Hoge: Window.width={}'.format(Window.width))
         self.screenWidth = Window.width
 
         # 画面の位置座標を初期化
@@ -73,7 +72,7 @@ class MainGame(Widget):
         self.enemies = []
 
         # ステージのタイルを読み込む
-        with open('testtile.txt', 'r', encoding='UTF-8') as f:
+        with open('tile01.txt', 'r', encoding='UTF-8') as f:
             tileLines = f.readlines()
 
         # イメージをまとめた画像を読み込み
@@ -148,11 +147,11 @@ class MainGame(Widget):
             # player < 中央 - プレイヤー横幅 && 速度<0 && ステージに左側がある: プレイヤーは動かず、プレイヤー以外が右へ移動する
             # それ以外: プレイヤーの速度 * 時間 でプレイヤーを移動する
             if self.player.pos[0] >= 0.5 * self.screenWidth and self.player.v[0] > 0 and self.currentX + self.screenWidth < self.stageWidth:
-                playerDx = 0
+                playerDx = 0.5 * self.screenWidth - self.player.pos[0]
                 relativeDx = dx * -1
                 self.currentX = self.currentX + dx  # 右スクロール中、現在座標は加算される
-            elif self.player.pos[0] < 0.5 * self.screenWidth and self.player.v[0] < 0 and self.currentX > 0:
-                playerDx = 0
+            elif self.player.pos[0] <= 0.5 * self.screenWidth and self.player.v[0] < 0 and self.currentX > 0:
+                playerDx = 0.5 * self.screenWidth - self.player.pos[0]
                 relativeDx = dx * -1
                 self.currentX = self.currentX + dx  # 左スクロール中、現在座標は減算される
             else:
@@ -161,8 +160,6 @@ class MainGame(Widget):
             # プレイヤーの移動
             self.player.pos = (self.player.pos[0] + playerDx,
                             self.player.pos[1] + self.player.v[1] * dt)
-        Logger.info('Hoge: player.x={}, screenWidth={}'.format(
-            self.player.pos[0], self.screenWidth))
         # プレイヤーの移動制限
         if self.player.pos[0] < 0: # playerは0より左へ移動できない
             self.player.pos = (0, self.player.pos[1])
@@ -196,10 +193,11 @@ class MainGame(Widget):
 
 
         for enemy in self.enemies:
-            # 敵がプレイヤーを確認して行動パターンを決定したりする処理
-            enemy.watch(self.player, self.screenWidth)
-            # 敵がプレイヤーに作用する処理
-            enemy.affect(self.player)
+            if enemy.alive:
+                # 敵がプレイヤーを確認して行動パターンを決定したりする処理
+                enemy.watch(self.player, self.screenWidth)
+                # 敵がプレイヤーに作用する処理
+                enemy.affect(self.player)
 
         # プレイヤー状態更新系処理
         if self.player.alive:
