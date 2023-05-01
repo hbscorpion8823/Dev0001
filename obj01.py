@@ -41,9 +41,10 @@ class BaseObj(Widget):
     
     
 
-    def spawn(self, img):
+    def spawn(self, img, posX, posY):
         t01 = TextureUtil.getTexture(img, self.region)
         self.texture = t01
+        self.pos = (posX, posY)
 
     def move(self, dt):
         pass

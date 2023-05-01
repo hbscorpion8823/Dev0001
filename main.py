@@ -85,35 +85,30 @@ class MainGame(Widget):
                 if tiles[x] == "1":
                     # obj01を初期化し、メインのWidgetに追加
                     self.player = Obj01()
-                    self.player.spawn(imgs)
-                    self.player.pos = (x * 100, y * 100)
+                    self.player.spawn(imgs, x * 100, y * 100)
                     self.objectLayer.add_widget(self.player)
                 elif tiles[x] == "2":
                     # obj02を初期化し、メインのWidgetに追加
                     obj02 = Obj02()
-                    obj02.spawn(imgs)
-                    obj02.pos = (x * 100, y * 100)
+                    obj02.spawn(imgs, x * 100, y * 100)
                     self.objs.append(obj02)
                     self.objectLayer.add_widget(obj02)
                 elif tiles[x] == "3":
                     # obj03を初期化し、メインのWidgetに追加
                     obj03 = Obj03()
-                    obj03.spawn(imgs)
-                    obj03.pos = (x * 100, y * 100)
+                    obj03.spawn(imgs, x * 100, y * 100)
                     self.enemies.append(obj03)
                     self.objectLayer.add_widget(obj03)
                 elif tiles[x] == "4":
                     # obj04を初期化し、メインのWidgetに追加
                     obj04 = Obj04()
-                    obj04.spawn(imgs)
-                    obj04.pos = (x * 100, y * 100)
+                    obj04.spawn(imgs, x * 100, y * 100)
                     self.objs.append(obj04)
                     self.objectLayer.add_widget(obj04)
                 elif tiles[x] == "5":
                     # obj05を初期化し、メインのWidgetに追加
                     obj05 = Obj05()
-                    obj05.spawn(imgs)
-                    obj05.pos = (x * 100, y * 100)
+                    obj05.spawn(imgs, x * 100, y * 100)
                     self.objs.append(obj05)
                     self.objectLayer.add_widget(obj05)
 
@@ -256,16 +251,7 @@ class MainGame(Widget):
         p1 = self.touchPosArray[0]
         p2 = self.touchPosArray[len(self.touchPosArray) - 1]
 
-        # 角度を算出
-        sinTheta = PosTimeUtil.getSinTheta(p1, p2)
-        # 45度超なら上に、45度以下なら横に速度を発生させる
-        if sinTheta == None:
-            pass
-        elif math.fabs(sinTheta) > 0.5 * math.sqrt(2):
-            self.player.v = (self.player.v[0], PosTimeUtil.getVy(p1, p2))
-            self.player.jumping = True
-        else:
-            self.player.v = (PosTimeUtil.getVx(p1, p2), self.player.v[1])
+        self.player.v = (PosTimeUtil.getVx(p1, p2), PosTimeUtil.getVy(p1, p2))
 
 """ メインのクラス(Androidプログラムで言うところのActivity) """
 class MainApp(App):
