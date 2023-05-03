@@ -2,12 +2,13 @@ from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
 from kivy.uix.image import Image
-from obj01 import Obj01, Obj02, Obj03, Obj04, Obj05
+from obj01 import Obj01, Obj02, Obj03, Obj04, Obj05, BaseEnemyObj
 from kivy.config import Config
 from kivy.properties import ObjectProperty, NumericProperty, BooleanProperty
 from postime import PosTime, PosTimeUtil
 import time
 import math
+import random
 from kivy.logger import Logger
 from kivy.core.window import Window
 from kivy.core.audio import SoundLoader
@@ -51,6 +52,8 @@ class MainGame(Widget):
     stageWidth = NumericProperty(None)
     # ゲームオーバーフラグ
     isGameOver = BooleanProperty(False)
+    # 得点
+    score = NumericProperty(None)
 
     """ 初期化処理 """
     def __init__(self, **kwargs):
@@ -60,9 +63,11 @@ class MainGame(Widget):
 
         # デバイスの画面解像度
         self.screenWidth = Window.width
-
         # 画面の位置座標を初期化
         self.currentX = 0
+        # スコアを初期化
+        self.score = 0
+        self.drawScore()
 
         # ステージ内オブジェクトの配列を初期化
         self.objs = []
@@ -82,46 +87,45 @@ class MainGame(Widget):
             tiles = tileLines[len(tileLines) - 1 - y].strip()
             self.stageWidth = len(tiles) * 100
             for x in range(0, len(tiles)):
-                if tiles[x] == "1":
-                    # obj01を初期化し、メインのWidgetに追加
-                    self.player = Obj01()
-                    self.player.spawn(imgs, x * 100, y * 100)
-                    self.objectLayer.add_widget(self.player)
-                elif tiles[x] == "2":
-                    # obj02を初期化し、メインのWidgetに追加
-                    obj02 = Obj02()
-                    obj02.spawn(imgs, x * 100, y * 100)
-                    self.objs.append(obj02)
-                    self.objectLayer.add_widget(obj02)
-                elif tiles[x] == "3":
-                    # obj03を初期化し、メインのWidgetに追加
-                    obj03 = Obj03()
-                    obj03.spawn(imgs, x * 100, y * 100)
-                    self.enemies.append(obj03)
-                    self.objectLayer.add_widget(obj03)
-                elif tiles[x] == "4":
-                    # obj04を初期化し、メインのWidgetに追加
-                    obj04 = Obj04()
-                    obj04.spawn(imgs, x * 100, y * 100)
-                    self.objs.append(obj04)
-                    self.objectLayer.add_widget(obj04)
-                elif tiles[x] == "5":
-                    # obj05を初期化し、メインのWidgetに追加
-                    obj05 = Obj05()
-                    obj05.spawn(imgs, x * 100, y * 100)
-                    self.objs.append(obj05)
-                    self.objectLayer.add_widget(obj05)
+                self.createGameObj(tiles[x], imgs, 100 * x, 100 * y) # tiles[x]の値ごとに適切なオブジェクトを画面に配置する
 
         # 毎秒60回更新処理を実行する
-        Clock.schedule_interval(self.update, 1 / 60.0)
+        self.updateEvent = Clock.schedule_interval(self.update, 1 / 60.0)
 
+    """ ゲームオブジェクト生成 """
+    def createGameObj(self, objectType, imgs, posX, posY):
+        obj = None
+
+        if objectType == "1":
+            obj = Obj01()
+            
+            self.player = obj
+            self.player.bind(lifePoint=self.drawPlayerLife)
+            self.drawPlayerLife(self.player, self.player.lifePoint) # 最初の1回のライフゲージ描画
+        elif objectType == "2":
+            obj = Obj02()
+            self.objs.append(obj)
+        elif objectType == "3":
+            obj = Obj03()
+            self.enemies.append(obj)
+        elif objectType == "4":
+            obj = Obj04()
+            self.objs.append(obj)
+        elif objectType == "5":
+            obj = Obj05()
+            self.objs.append(obj)
+        
+        if obj is not None:
+            obj.spawn(imgs, posX, posY)
+            if isinstance(obj, BaseEnemyObj):
+                obj.bind(alive=self.getReward)
+            self.objectLayer.add_widget(obj)
+
+        return obj
 
     """ 秒間60回実行されるメイン処理 """
     def update(self, dt):
         
-        if self.isGameOver:
-            return
-
         # 移動系処理メイン
         self.moveMain(dt)
         # 更新系処理メイン
@@ -228,6 +232,7 @@ class MainGame(Widget):
         button = TitleButton()
         button.bind(on_press=self.pressTitleButton)
         self.objectLayer.add_widget(button)
+        Clock.unschedule(self.updateEvent)
 
     """ タップ時処理 """
     def on_touch_down(self, touch):
@@ -236,22 +241,40 @@ class MainGame(Widget):
         if self.player is not None and self.player.collide_point(touch.x, touch.y):
             self.player.v = (0, 0) # プレイヤーをタップしたら止まる
 
-
     """ ドラッグ（スワイプ？）時処理 """
     def on_touch_move(self, touch):
-
         # move座標を記録（時間もあわせて記録）
         pt = PosTime(touch.pos, time.time())
         self.touchPosArray.append(pt)
         if len(self.touchPosArray) > 5:
             self.touchPosArray.pop(0)
-
         # 始点と終点の座標と時間をとる
         # 直近最大5点の始点と終点をp1、p2とする
         p1 = self.touchPosArray[0]
         p2 = self.touchPosArray[len(self.touchPosArray) - 1]
-
+        # プレイヤーの速度を算出する
         self.player.v = (PosTimeUtil.getVx(p1, p2), PosTimeUtil.getVy(p1, p2))
+
+    """ プレイヤーのライフゲージを描画する処理。プレイヤーのライフの増減をトリガーに呼ばれたりする """
+    def drawPlayerLife(self, playerObj, playerLife):
+        txt = ""
+        for x in range(0, playerLife):
+            txt += "P"
+        self.txtPlayerLife.text = str(txt)
+
+    """ スコアを描画する処理 """
+    def drawScore(self):
+        self.txtScore.text = str(self.score)
+
+    """ 敵を倒したときの報酬を受け取る処理 """
+    def getReward(self, enemyObj, alive):
+        # スコアを加算
+        self.score += enemyObj.score
+        self.drawScore()
+        # ドロップ処理
+        rand = random.randint(0, 100) # 乱数がドロップ率以下ならばドロップ
+        if rand <= enemyObj.dropRate:
+            print(enemyObj.drop)
 
 """ メインのクラス(Androidプログラムで言うところのActivity) """
 class MainApp(App):
@@ -260,7 +283,6 @@ class MainApp(App):
         # タイトル画面をアプリケーションに設定する
         ts = TitleScreen()
         return ts
-
 
 if __name__ == '__main__':
     MainApp().run()

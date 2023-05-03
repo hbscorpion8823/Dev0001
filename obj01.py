@@ -1,5 +1,5 @@
 from kivy.uix.scatter import Scatter
-from kivy.properties import ObjectProperty, BooleanProperty, NumericProperty
+from kivy.properties import ObjectProperty, BooleanProperty, NumericProperty, StringProperty
 from textureutil import TextureUtil
 from kivy.uix.widget import Widget
 from kivy.logger import Logger
@@ -30,16 +30,13 @@ class BaseObj(Widget):
     # param
     lifePoint = NumericProperty(None) # ライフポイント
     v = (0, 0) # x方向、y方向の速度(px/s)
-    duration = 0 # オブジェクトの作業時間（爆発時間や停止時間等に仕様）
-    g = NumericProperty(None)
+    duration = 0 # オブジェクトの作業時間（爆発時間や停止時間等に使用）
+    g = NumericProperty(None) # 重力加速度
 
     # flags
     alive = BooleanProperty(True) # 生存フラグ
     explode = BooleanProperty(False) # 爆発フラグ(Trueになったとき、実質的にしんでいる)
     jumping = BooleanProperty(True) # ジャンプフラグ。床と接触するまでは原則的にTrueとする
-    
-    
-    
 
     def spawn(self, img, posX, posY):
         t01 = TextureUtil.getTexture(img, self.region)
@@ -56,6 +53,7 @@ class BaseObj(Widget):
         if self.duration > 0.3:
             self.alive = False
     
+    """ オブジェクトの中央座標を取得する処理 """
     def centerPos(self):
         return (self.center_x, self.center_y)
 
@@ -108,37 +106,43 @@ class BaseObj(Widget):
             elif obj02_right > obj01_left and (cosX > 0.5 * SQRT2 and sinX > -0.5 * SQRT2 and sinX < 0.5 * SQRT2):
                 self.rightAffect(_obj01)
 
+    """ 対象がオブジェクト上方にある場合の処理 """
     def upAffect(self, _obj01):
-        """ 対象がオブジェクト上方にある場合の処理 """
         pass
 
+    """ 対象がオブジェクト下方にある場合の処理 """
     def downAffect(self, _obj01):
-        """ 対象がオブジェクト下方にある場合の処理 """
         pass
 
+    """ 対象がオブジェクト左方にある場合の処理 """
     def leftAffect(self, _obj01):
-        """ 対象がオブジェクト左方にある場合の処理 """
         pass
 
+    """ 対象がオブジェクト右方にある場合の処理 """
     def rightAffect(self, _obj01):
-        """ 対象がオブジェクト右方にある場合の処理 """
         pass
 
+    """ 生存状態かつ爆発状態(実質死んでいる)でない、活動可能な状態 """
     def isOK(self):
         return self.alive and not self.explode
 
+    """ ダメージを受けた場合の処理。ライフポイントが尽きたらしぬ """
     def damaged(self):
         self.lifePoint -= 1
-        if self.lifePoint <= 0 and self.isOK():
-            eximg = ExplosionImage()
-            eximg.pos = self.pos
-            eximg.size = self.size
-            self.add_widget(eximg)
-            self.explode = True
-            self.duration = 0
-            explosionSound.play()
-        else:
-            damagedSound.play()
+        if self.lifePoint <= 0 and self.isOK(): # ライフポイントが尽きた場合
+            eximg = ExplosionImage() # 爆発アニメーションを初期化
+            eximg.pos = self.pos # 爆発アニメーションをキャラクターの座標に配置
+            eximg.size = self.size # サイズを設定
+            self.add_widget(eximg) # 爆発アニメを追加する
+            self.explode = True # 爆発フラグを立てる(アニメーション後、生存フラグoff)
+            self.duration = 0 # アニメーション時間を初期化する
+            explosionSound.play() # 爆発音を再生
+        else: # ライフポイントが残っている場合
+            damagedSound.play() # ダメージボイスを再生
+
+    """ 敵がプレイヤーの座標を見て行動パターンを決定するための処理。何画面離れたところに来たら、等のチェックのために画面サイズを引数に使用する """
+    def watch(self, target, screenWidth):
+        pass # 敵用の処理ではあるけれど、実装改善のためにBaseObjに実装する
 
 class Obj01(BaseObj):
 
@@ -152,51 +156,54 @@ class Obj01(BaseObj):
 
     """ 更新処理 """
     def update(self, dt):
-
         super(Obj01, self).update(dt)
-
         # 落ちたら生存フラグをFalseにする
         if self.pos[1] + self.height < 0:
             missSound.play()
             self.alive = False
-
         # 速度を加算
         if self.jumping:
             self.v = (self.v[0], self.v[1] - dt * self.g)  # 下向きに重力加速度による速度加算が行われる
 
-
-
-
 class Obj02(BaseObj):
+    """ 対象がオブジェクト上方にある場合の処理 """
     def upAffect(self, target):
-        """ 対象がオブジェクト上方にある場合の処理 """
         target.pos[1] = self.pos[1] + self.height
         target.v = (target.v[0], 0)  # 床突き抜け回避処理
         target.jumping = False
 
+    """ 対象がオブジェクト下方にある場合の処理 """
     def downAffect(self, target):
-        """ 対象がオブジェクト下方にある場合の処理 """
         target.pos[1] = self.pos[1] - target.height
         target.v = (target.v[0], -1 * target.v[1]) # 頭をぶつけたので速度反転
 
+    """ 対象がオブジェクト左方にある場合の処理 """
     def leftAffect(self, target):
-        """ 対象がオブジェクト左方にある場合の処理 """
         target.pos[0] = self.pos[0] - target.width
         target.v = (0, target.v[1]) # 壁登り回避処理
 
+    """ 対象がオブジェクト右方にある場合の処理 """
     def rightAffect(self, target):
-        """ 対象がオブジェクト右方にある場合の処理 """
         target.pos[0] = self.pos[0] + self.width
         target.v = (0, target.v[1]) # 壁登り回避処理
 
-
-class Obj03(BaseObj):
-
+class BaseEnemyObj(BaseObj):
     pattern = 0
-
+    score = NumericProperty(None) # 倒したときのスコア
+    dropRate = NumericProperty(None) # アイテムのドロップ率
+    drop = StringProperty(None) # ドロップするアイテム
     """ 移動処理 """
     def move(self, dt):
         self.pos = (self.pos[0] + self.v[0] * dt, self.pos[1] + self.v[1] * dt)
+
+    """ 何らかの理由(敵からダメージを受けた等)で敵を倒した場合のドロップを無くす処理 """
+    def clearReward(self):
+        self.score = 0
+        self.dropRate = 0
+        self.drop = "0"
+
+
+class Obj03(BaseEnemyObj):
 
     """ 更新処理 """
     def update(self, dt):
@@ -219,7 +226,7 @@ class Obj03(BaseObj):
 
         if self.pattern % 2 == 1 and self.pos[0] < target.pos[0] - target.width * 3:
             self.v = (self.v[0] * -1, self.v[1])
-            self.texture.flip_horizontal() # テクスチャ反転
+            self.texture.flip_horizontal() # テクスチャ水平反転(希望)
             self.pattern = 2
 
         if self.pattern == 2 and self.pos[0] > target.pos[0] + target.width * 3:
@@ -242,12 +249,14 @@ class Obj03(BaseObj):
     def leftAffect(self, target):
         if self.isOK():
             target.damaged() # やられる
+            self.clearReward() # ドロップなくす
             self.alive = False # 敵も消える
 
     """ 対象がオブジェクト右方にある場合の処理 """
     def rightAffect(self, target):
         if self.isOK():
             target.damaged() # やられる
+            self.clearReward() # ドロップなくす
             self.alive = False # 敵も消える
 
 class Obj04(BaseObj):
@@ -260,5 +269,6 @@ class Obj05(BaseObj):
     def affect(self, target):
         if self.isOK() and self.collide_widget(target):
             healSound.play()
-            target.lifePoint += 1
+            if hasattr(target, "maxLifePoint") and target.maxLifePoint > target.lifePoint:
+                target.lifePoint += 1
             self.alive = False

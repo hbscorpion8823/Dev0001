@@ -23,6 +23,8 @@
     objectLayer: l01 # オブジェクト等を格納するレイヤー（最背面想定）
     workingLayer: l02 # 文字等を配置するレイヤー
     txtGameOver: txtGameOver # ゲームオーバー時テキスト
+    txtPlayerLife: txtPlayerLife # プレイヤーライフテキスト
+    txtScore: txtScore # プレイヤーライフテキスト
 
     FloatLayout:
         size: root.size
@@ -48,10 +50,28 @@
 
         Label:
             text: ''
+            id: txtPlayerLife
+            halign: 'left'
+            font_size: 45
+            size_hint: None, None
+            color: 1, 0, 1, 1
+            pos_hint: {'x': 0.15, 'y': 0.8}
+
+        Label:
+            text: ''
             id: txtGameOver
             font_size: 35
             size_hint: None, None
             pos_hint: {'x': 0.4, 'y': 0.5}
+
+        Label:
+            text: ''
+            id: txtScore
+            halign: 'right'
+            font_size: 35
+            size_hint: None, None
+            color: 1, 1, 1, 1
+            pos_hint: {'x': 0.55, 'y': 0.8}
 
 <MyImages>:
     source: 'imgs/images001.png'
