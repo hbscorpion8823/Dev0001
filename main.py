@@ -189,11 +189,12 @@ class MainGame(Widget):
                 else: # objが敵である場合
                     obj.watch(self.player, self.screenWidth) # 敵がプレイヤーを確認して行動パターンを決定したりする処理
 
+            # 生存判定
             if obj.alive:
                 obj.update(dt)
             else:
                 self.objectLayer.remove_widget(obj)
-                if isinstance(obj, Obj04):
+                if isinstance(obj, Obj04): # Obj04を取ったらゲームクリア
                     self.finishGame('Congraturations!')
                 self.objs.remove(obj)
         
