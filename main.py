@@ -7,12 +7,8 @@ from kivy.config import Config
 from kivy.properties import ObjectProperty, NumericProperty, BooleanProperty
 from postime import PosTime, PosTimeUtil
 import time
-import math
 import random
-from kivy.logger import Logger
 from kivy.core.window import Window
-from kivy.core.audio import SoundLoader
-from kivy.uix.label import Label
 from kivy.uix.button import Button
 
 # 勝手にportraitオリエンテーションにするのを防ぐためのおまじない
@@ -75,19 +71,18 @@ class MainGame(Widget):
         self.touchPosArray = []
         # 敵配列を初期化
         self.enemies = []
+        # イメージをまとめた画像を読み込み
+        self.imgs = MyImages()
 
         # ステージのタイルを読み込む
         with open('tile01.txt', 'r', encoding='UTF-8') as f:
             tileLines = f.readlines()
 
-        # イメージをまとめた画像を読み込み
-        imgs = MyImages()
-
         for y in range(0, len(tileLines)):
             tiles = tileLines[len(tileLines) - 1 - y].strip()
             self.stageWidth = len(tiles) * 100
             for x in range(0, len(tiles)):
-                self.createGameObj(tiles[x], imgs, 100 * x, 100 * y) # tiles[x]の値ごとに適切なオブジェクトを画面に配置する
+                self.createGameObj(tiles[x], self.imgs, 100 * x, 100 * y) # tiles[x]の値ごとに適切なオブジェクトを画面に配置する
 
         # 毎秒60回更新処理を実行する
         self.updateEvent = Clock.schedule_interval(self.update, 1 / 60.0)
@@ -98,7 +93,6 @@ class MainGame(Widget):
 
         if objectType == "1":
             obj = Obj01()
-            
             self.player = obj
             self.player.bind(lifePoint=self.drawPlayerLife)
             self.drawPlayerLife(self.player, self.player.lifePoint) # 最初の1回のライフゲージ描画
@@ -119,6 +113,8 @@ class MainGame(Widget):
             obj.spawn(imgs, posX, posY)
             if isinstance(obj, BaseEnemyObj):
                 obj.bind(alive=self.getReward)
+            elif isinstance(obj, Obj04):
+                obj.bind(alive=self.gameClear)
             self.objectLayer.add_widget(obj)
 
         return obj
@@ -194,8 +190,6 @@ class MainGame(Widget):
                 obj.update(dt)
             else:
                 self.objectLayer.remove_widget(obj)
-                if isinstance(obj, Obj04): # Obj04を取ったらゲームクリア
-                    self.finishGame('Congraturations!')
                 self.objs.remove(obj)
         
         # プレイヤー状態更新系処理
@@ -261,7 +255,11 @@ class MainGame(Widget):
         # ドロップ処理
         rand = random.randint(0, 100) # 乱数がドロップ率以下ならばドロップ
         if rand <= enemyObj.dropRate:
-            print(enemyObj.drop)
+            self.createGameObj(enemyObj.drop, self.imgs, enemyObj.pos[0], enemyObj.pos[1])
+
+    """ ゲームクリア処理 """
+    def gameClear(self, obj04, alive):
+        self.finishGame('Congraturations!')
 
 """ メインのクラス(Androidプログラムで言うところのActivity) """
 class MainApp(App):

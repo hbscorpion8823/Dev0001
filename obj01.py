@@ -38,27 +38,28 @@ class BaseObj(Widget):
     explode = BooleanProperty(False) # 爆発フラグ(Trueになったとき、実質的にしんでいる)
     jumping = BooleanProperty(True) # ジャンプフラグ。床と接触するまでは原則的にTrueとする
 
+    """ テクスチャ設定＋座標指定 """
     def spawn(self, img, posX, posY):
         t01 = TextureUtil.getTexture(img, self.region)
         self.texture = t01
         self.pos = (posX, posY)
 
+    """ 移動処理(必要に応じて各個実装) """
     def move(self, dt):
         pass
 
     def update(self, dt):
-        if self.explode:
-            self.duration += dt
+        self.duration += dt
 
-        if self.duration > 0.3:
+        if self.explode and self.duration > 0.3: # 爆発中 and アニメーション再生時間 > 0.3s の条件を満たしたら生存フラグをFalseにする
             self.alive = False
     
     """ オブジェクトの中央座標を取得する処理 """
     def centerPos(self):
         return (self.center_x, self.center_y)
 
+    """ 対象に対して作用を行う処理(例: 床がキャラクターに対して垂直抗力を加える) """
     def affect(self, _obj01):
-
         if self is None or _obj01 is None:
             return # Noneに対しては処理を行わない(NullPointer対策)
 
@@ -181,11 +182,15 @@ class Obj02(BaseObj):
     def leftAffect(self, target):
         target.pos[0] = self.pos[0] - target.width
         target.v = (0, target.v[1]) # 壁登り回避処理
+        if isinstance(target, Obj03):
+            print("enemy <---(leftAffect) yuka: {0}".format(target.pattern))
 
     """ 対象がオブジェクト右方にある場合の処理 """
     def rightAffect(self, target):
         target.pos[0] = self.pos[0] + self.width
         target.v = (0, target.v[1]) # 壁登り回避処理
+        if isinstance(target, Obj03):
+            print("yuka --->(rightAffect) enemy: {0}".format(target.pattern))
 
 class BaseEnemyObj(BaseObj):
     pattern = 0
@@ -222,16 +227,16 @@ class Obj03(BaseEnemyObj):
         if self.pattern == 0 and self.pos[0] > target.pos[0] and self.pos[0] - target.pos[0] < screenWidth:
             self.pattern = 1
             shout1Sound.play()
-            self.v = (-160, self.v[1])
+            self.v = (-1 * self.v0, self.v[1])
 
-        if self.pattern % 2 == 1 and self.pos[0] < target.pos[0] - target.width * 3:
-            self.v = (self.v[0] * -1, self.v[1])
+        if self.pattern % 2 == 1 and self.pos[0] < target.pos[0]:
+            self.v = (self.v0, self.v[1])
             self.texture.flip_horizontal() # テクスチャ水平反転(希望)
             self.pattern = 2
 
-        if self.pattern == 2 and self.pos[0] > target.pos[0] + target.width * 3:
-            self.v = (self.v[0] * -1, self.v[1])
-            self.texture.flip_horizontal() # テクスチャ反転
+        if self.pattern == 2 and self.pos[0] > target.pos[0]:
+            self.v = (-1 * self.v0, self.v[1])
+            self.texture.flip_horizontal() # テクスチャ水平反転(希望)
             self.pattern = 3
 
     """ 対象がオブジェクト上方にある場合の処理 """
@@ -267,6 +272,9 @@ class Obj04(BaseObj):
 
 class Obj05(BaseObj):
     def affect(self, target):
+        if self.duration < 0.3: # ドロップして即取ってしまうと、何を取ったかわからないため猶予時間を設定
+            return
+
         if self.isOK() and self.collide_widget(target):
             healSound.play()
             if hasattr(target, "maxLifePoint") and target.maxLifePoint > target.lifePoint:
