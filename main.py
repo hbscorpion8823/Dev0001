@@ -107,7 +107,7 @@ class MainGame(Widget):
             self.objs.append(obj)
         elif objectType == "3":
             obj = Obj03()
-            self.enemies.append(obj)
+            self.objs.append(obj)
         elif objectType == "4":
             obj = Obj04()
             self.objs.append(obj)
@@ -165,58 +165,44 @@ class MainGame(Widget):
         elif self.player.pos[0] > self.screenWidth - self.player.width: # 画面右端より先へは移動できない
             self.player.pos = (self.screenWidth - self.player.width, self.player.pos[1])
         # オブジェクトの移動(相対速度的なもの)
-        for obj02 in self.objs:
-            obj02.pos = (obj02.pos[0] + relativeDx, obj02.pos[1])
-        # 敵の移動(相対速度的なもの＋敵自身の移動)
-        for enemy in self.enemies:
-            enemy.pos = (enemy.pos[0] + relativeDx, enemy.pos[1])
-            enemy.move(dt)
+        for obj in self.objs:
+            obj.pos = (obj.pos[0] + relativeDx, obj.pos[1]) # 相対速度的な移動
+            obj.move(dt)
 
     """ 各オブジェクトの状態更新系処理 """
     def updateMain(self, dt):
 
-        # プレイヤーと敵のジャンプ中フラグをTrueにする。床からの作用を受けなかった場合はTrueのままになる
-        # プレイヤー
-        self.player.jumping = True
-        for enemy in self.enemies:
-            # 敵
-            enemy.jumping = True
+        self.player.jumping = True # プレイヤーのジャンプ中フラグをTrueにする。床からの作用を受けなかった場合はTrueのままになる
 
-        # 作用系処理(床に接地した場合、ここでジャンプ中フラグがFalseになる)
-        for obj02 in self.objs:
-            # 床がプレイヤーを排他する処理
-            obj02.affect(self.player)
-            for enemy in self.enemies:
-                # 床が敵を排他する処理
-                obj02.affect(enemy)
+        for obj in self.objs:
+            # ジャンプフラグ制御
+            if isinstance(obj, BaseEnemyObj): # 敵インスタンスである場合
+                obj.jumping = True # 敵のジャンプ中フラグをTrueにする
 
+            # 作用系処理
+            if obj.isOK(): # オブジェクトが生存中かつ爆発していない場合のみ実行
+                obj.affect(self.player) # プレイヤーに対する作用（万物共通）
+                if not isinstance(obj, BaseEnemyObj): # 敵ではないオブジェクトの場合、敵に対して作用する（床が敵を押し返すような作用）
+                    for something in self.objs: # ループの中にループを入れる実装、あまり良くない気はしている
+                        if isinstance(something, BaseEnemyObj): # somethingが敵である場合のみ実行
+                            obj.affect(something) # 床 --> 敵への作用
+                else: # objが敵である場合
+                    obj.watch(self.player, self.screenWidth) # 敵がプレイヤーを確認して行動パターンを決定したりする処理
 
-        for enemy in self.enemies:
-            if enemy.alive:
-                # 敵がプレイヤーを確認して行動パターンを決定したりする処理
-                enemy.watch(self.player, self.screenWidth)
-                # 敵がプレイヤーに作用する処理
-                enemy.affect(self.player)
-
+            if obj.alive:
+                obj.update(dt)
+            else:
+                self.objectLayer.remove_widget(obj)
+                if isinstance(obj, Obj04):
+                    self.finishGame('Congraturations!')
+                self.objs.remove(obj)
+        
         # プレイヤー状態更新系処理
         if self.player.alive:
             self.player.update(dt)
         else:
             self.finishGame('GAME OVER')
             self.objectLayer.remove_widget(self.player)
-        # オブジェクト状態更新系処理
-        for obj in self.objs:
-            if obj.alive == False:
-                self.objectLayer.remove_widget(obj)
-                if isinstance(obj, Obj04):
-                    self.finishGame('Congraturations!')
-                self.objs.remove(obj)
-        # 敵状態更新系処理
-        for enemy in self.enemies:
-            if enemy.alive:
-                enemy.update(dt)
-            else:
-                self.objectLayer.remove_widget(enemy)
 
     """ タイトルボタン押下処理(self=メインのゲームウィジェット, instance=ボタンインスタンス) """
     def pressTitleButton(self, instance):
