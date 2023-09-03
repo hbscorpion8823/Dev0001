@@ -10,6 +10,8 @@ import time
 import random
 from kivy.core.window import Window
 from kivy.uix.button import Button
+import math
+import sys
 
 # 勝手にportraitオリエンテーションにするのを防ぐためのおまじない
 # kivy.core.window を使用すると端末の方向によってはportraitオリエンテーションになってしまう
@@ -50,6 +52,12 @@ class MainGame(Widget):
     isGameOver = BooleanProperty(False)
     # 得点
     score = NumericProperty(None)
+    # 描画したカラムインデックス左端
+    # TODO: 辞書にする
+    leftIdx = {}
+    # 描画したカラムインデックス右端
+    # TODO: 辞書にする
+    rightIdx = {}
 
     """ 初期化処理 """
     def __init__(self, **kwargs):
@@ -76,13 +84,13 @@ class MainGame(Widget):
 
         # ステージのタイルを読み込む
         with open('tile01.txt', 'r', encoding='UTF-8') as f:
-            tileLines = f.readlines()
+            self.stageRows = f.readlines()
 
-        for y in range(0, len(tileLines)):
-            tiles = tileLines[len(tileLines) - 1 - y].strip()
-            self.stageWidth = len(tiles) * 100
-            for x in range(0, len(tiles)):
-                self.createGameObj(tiles[x], self.imgs, 100 * x, 100 * y) # tiles[x]の値ごとに適切なオブジェクトを画面に配置する
+        if self.setStageWidth() is False:
+            print("tile file is invalid. column length is different")
+            sys.exit(1)
+
+        self.drawStage()
 
         # 毎秒60回更新処理を実行する
         self.updateEvent = Clock.schedule_interval(self.update, 1 / 60.0)
@@ -130,6 +138,9 @@ class MainGame(Widget):
     """ 各オブジェクトの移動系処理 """
     def moveMain(self, dt):
 
+        if self.player is None:
+            return
+
         # x変化量を出す
         dx = self.player.v[0] * dt
         playerDx = 0  # プレイヤー自身のx増分
@@ -168,7 +179,8 @@ class MainGame(Widget):
     """ 各オブジェクトの状態更新系処理 """
     def updateMain(self, dt):
 
-        self.player.jumping = True # プレイヤーのジャンプ中フラグをTrueにする。床からの作用を受けなかった場合はTrueのままになる
+        if self.player is not None:
+            self.player.jumping = True # プレイヤーのジャンプ中フラグをTrueにする。床からの作用を受けなかった場合はTrueのままになる
 
         for obj in self.objs:
             # ジャンプフラグ制御
@@ -192,6 +204,9 @@ class MainGame(Widget):
                 self.objectLayer.remove_widget(obj)
                 self.objs.remove(obj)
         
+        if self.player is None:
+            return
+
         # プレイヤー状態更新系処理
         if self.player.alive:
             self.player.update(dt)
@@ -260,6 +275,42 @@ class MainGame(Widget):
     """ ゲームクリア処理 """
     def gameClear(self, obj04, alive):
         self.finishGame('Congraturations!')
+
+    """ 左端X座標とステージタイルから1画面分の画面描写を行う。いずれも変数として保持しているので、selfのみを引数に指定 """
+    def drawStage(self):
+        # 現在座標から画面左から-20%(or0)の座標と画面右から+20%(orMAX)の座標を決定する
+        leftX = max(0, self.currentX - self.screenWidth * 0.2) # when 0, idx = 0
+        rightX = min(self.currentX + self.screenWidth * 1.2, self.stageWidth) # when 5400, idx = 53
+
+        # 上記座標のタイルインデックスを取得する
+        leftIdx = math.floor(leftX / 100.0)
+        rightIdx = math.ceil(rightX / 100.0) - 1
+
+        # 取得したタイルインデックスに対し、描画しているor描画していないを判断しながら必要なタイルを描画する(for文)
+        for y in range(0, len(self.stageRows)):
+            tiles = self.stageRows[len(self.stageRows) - 1 - y].strip()
+            for x in range(leftIdx, rightIdx + 1):
+                drawFlg = False
+                if self.leftIdx.get(y) is None or  x < self.leftIdx.get(y): # 描画済み左インデックスが指定されていないケース または 現在インデックスが描画済み左インデックスよりも左の場合
+                    drawFlg = True
+                    self.leftIdx[y] = x
+                if self.rightIdx.get(y) is None or x > self.rightIdx.get(y): # 描画済み右インデックスが指定されていないケース または 現在インデックスが描画済み右インデックスよりも右の場合
+                    drawFlg = True
+                    self.rightIdx[y] = x
+                if drawFlg is True: # 描画フラグがTrueの場合のときのみ
+                    self.createGameObj(tiles[x], self.imgs, 100 * x, 100 * y) # tiles[x]の値ごとに適切なオブジェクトを画面に配置する
+
+
+    def setStageWidth(self):
+        for y in range(0, len(self.stageRows)):
+            tiles = self.stageRows[len(self.stageRows) - 1 - y].strip()
+            stageWidth = len(tiles) * 100
+            if self.stageWidth == None:
+                self.stageWidth = stageWidth
+            elif self.stageWidth != stageWidth:
+                return False # Not all ok, return False
+        # all ok, return True
+        return True
 
 """ メインのクラス(Androidプログラムで言うところのActivity) """
 class MainApp(App):
