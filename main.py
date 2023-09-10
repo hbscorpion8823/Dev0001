@@ -54,10 +54,10 @@ class MainGame(Widget):
     score = NumericProperty(None)
     # 描画したカラムインデックス左端
     # TODO: 辞書にする
-    leftIdx = {}
+    leftIdx = NumericProperty(None)
     # 描画したカラムインデックス右端
     # TODO: 辞書にする
-    rightIdx = {}
+    rightIdx = NumericProperty(None)
 
     """ 初期化処理 """
     def __init__(self, **kwargs):
@@ -286,20 +286,18 @@ class MainGame(Widget):
         leftIdx = math.floor(leftX / 100.0)
         rightIdx = math.ceil(rightX / 100.0) - 1
 
-        # 取得したタイルインデックスに対し、描画しているor描画していないを判断しながら必要なタイルを描画する(for文)
-        for y in range(0, len(self.stageRows)):
-            tiles = self.stageRows[len(self.stageRows) - 1 - y].strip()
-            for x in range(leftIdx, rightIdx + 1):
-                drawFlg = False
-                if self.leftIdx.get(y) is None or  x < self.leftIdx.get(y): # 描画済み左インデックスが指定されていないケース または 現在インデックスが描画済み左インデックスよりも左の場合
-                    drawFlg = True
-                    self.leftIdx[y] = x
-                if self.rightIdx.get(y) is None or x > self.rightIdx.get(y): # 描画済み右インデックスが指定されていないケース または 現在インデックスが描画済み右インデックスよりも右の場合
-                    drawFlg = True
-                    self.rightIdx[y] = x
-                if drawFlg is True: # 描画フラグがTrueの場合のときのみ
+        for x in range(leftIdx, rightIdx + 1):
+            drawFlg = False
+            if self.leftIdx is None or  x < self.leftIdx: # 描画済み左インデックスが指定されていないケース または 現在インデックスが描画済み左インデックスよりも左の場合
+                drawFlg = True
+                self.leftIdx = x
+            if self.rightIdx is None or x > self.rightIdx: # 描画済み右インデックスが指定されていないケース または 現在インデックスが描画済み右インデックスよりも右の場合
+                drawFlg = True
+                self.rightIdx = x
+            if drawFlg is True: # 描画フラグがTrueの場合のときのみ
+                for y in range(0, len(self.stageRows)):
+                    tiles = self.stageRows[len(self.stageRows) - 1 - y].strip()
                     self.createGameObj(tiles[x], self.imgs, 100 * x, 100 * y) # tiles[x]の値ごとに適切なオブジェクトを画面に配置する
-
 
     def setStageWidth(self):
         for y in range(0, len(self.stageRows)):
