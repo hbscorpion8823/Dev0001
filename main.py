@@ -56,6 +56,10 @@ class MainGame(Widget):
     leftIdx = NumericProperty(None)
     # 描画したカラムインデックス右端
     rightIdx = NumericProperty(None)
+    # 描画エリア左端X座標
+    leftX = NumericProperty(None)
+    # 描画エリア右端X座標
+    rightX = NumericProperty(None)
     # 観測用のオブジェクト TODO: いずれ削除する
     something = ObjectProperty(None)
 
@@ -100,13 +104,14 @@ class MainGame(Widget):
         obj = None
 
         if objectType == "1":
-            obj = Obj01()
-            self.player = obj
-            self.player.bind(lifePoint=self.drawPlayerLife)
-            self.drawPlayerLife(self.player, self.player.lifePoint) # 最初の1回のライフゲージ描画
+            if self.player is None: # プレイヤーが設定されていない場合のみ実行
+                obj = Obj01()
+                self.player = obj
+                self.player.bind(lifePoint=self.drawPlayerLife)
+                self.drawPlayerLife(self.player, self.player.lifePoint) # 最初の1回のライフゲージ描画
         elif objectType == "2":
             obj = Obj02()
-            if self.something is None:
+            if self.something is None: # 最初の1オブジェクトを観測対象に指定
                 self.something = obj
             self.objs.append(obj)
         elif objectType == "3":
@@ -178,7 +183,8 @@ class MainGame(Widget):
             obj.pos = (obj.pos[0] + relativeDx, obj.pos[1]) # 相対速度的な移動
             obj.move(dt)
 
-        self.printIdx() # インデックスを標準出力
+        # self.printIdx() # インデックスを標準出力
+        self.drawStage()
 
     """ 各オブジェクトの状態更新系処理 """
     def updateMain(self, dt):
@@ -205,6 +211,14 @@ class MainGame(Widget):
             if obj.alive:
                 obj.update(dt)
             else:
+                self.objectLayer.remove_widget(obj)
+                self.objs.remove(obj)
+
+            # 描画エリアからはみ出したオブジェクトの削除
+            if self.currentX + obj.pos[0] + obj.width < self.leftX:
+                self.objectLayer.remove_widget(obj)
+                self.objs.remove(obj)
+            elif self.currentX + obj.pos[0] > self.rightX:
                 self.objectLayer.remove_widget(obj)
                 self.objs.remove(obj)
         
@@ -294,27 +308,22 @@ class MainGame(Widget):
         if self.leftIdx is not None and self.rightIdx is not None and self.leftIdx == leftIdx and self.rightIdx == rightIdx:
             return
 
-        for x in range(leftIdx, rightIdx + 1):
+        for xIdx in range(leftIdx, rightIdx + 1):
             drawFlg = False
-            if self.leftIdx is None or  x < self.leftIdx: # 描画済み左インデックスが指定されていないケース または 現在インデックスが描画済み左インデックスよりも左の場合
+            if self.leftIdx is None or  xIdx < self.leftIdx: # 描画済み左インデックスが指定されていないケース または 現在インデックスが描画済み左インデックスよりも左の場合
                 drawFlg = True
-            if self.rightIdx is None or x > self.rightIdx: # 描画済み右インデックスが指定されていないケース または 現在インデックスが描画済み右インデックスよりも右の場合
+            if self.rightIdx is None or xIdx > self.rightIdx: # 描画済み右インデックスが指定されていないケース または 現在インデックスが描画済み右インデックスよりも右の場合
                 drawFlg = True
             if drawFlg is True: # 描画フラグがTrueの場合のときのみ
-                for y in range(0, len(self.stageRows)):
-                    tiles = self.stageRows[len(self.stageRows) - 1 - y].strip()
-                    self.createGameObj(tiles[x], self.imgs, 100 * x, 100 * y) # tiles[x]の値ごとに適切なオブジェクトを画面に配置する
-        # メモ：描画する座標も、インデックスベースで管理する必要があるのではないか
-        # そうすれば、はみだしたオブジェクトを削除する処理も多少らくに実装できるのではあるまいか
+                for yIdx in range(0, len(self.stageRows)):
+                    tiles = self.stageRows[len(self.stageRows) - 1 - yIdx].strip()
+                    self.createGameObj(tiles[xIdx], self.imgs, 100 * xIdx - self.currentX, 100 * yIdx) # tiles[x]の値ごとに適切なオブジェクトを画面に配置する
 
-        # drawingObj.x = rightIdx * 100 - currentX
-        # で算出できるっぽい
-
-        # 描画後、インデックスを上書きする
+        # 描画後、インデックスおよび描画エリアX座標を上書きする
         self.leftIdx = leftIdx
         self.rightIdx = rightIdx
-
-        # TODO: はみだしたオブジェクトを消去する
+        self.leftX = leftX
+        self.rightX = rightX
 
     def setStageWidth(self):
         for y in range(0, len(self.stageRows)):
