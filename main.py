@@ -53,11 +53,11 @@ class MainGame(Widget):
     # 得点
     score = NumericProperty(None)
     # 描画したカラムインデックス左端
-    # TODO: 辞書にする
     leftIdx = NumericProperty(None)
     # 描画したカラムインデックス右端
-    # TODO: 辞書にする
     rightIdx = NumericProperty(None)
+    # 観測用のオブジェクト TODO: いずれ削除する
+    something = ObjectProperty(None)
 
     """ 初期化処理 """
     def __init__(self, **kwargs):
@@ -106,6 +106,8 @@ class MainGame(Widget):
             self.drawPlayerLife(self.player, self.player.lifePoint) # 最初の1回のライフゲージ描画
         elif objectType == "2":
             obj = Obj02()
+            if self.something is None:
+                self.something = obj
             self.objs.append(obj)
         elif objectType == "3":
             obj = Obj03()
@@ -175,6 +177,8 @@ class MainGame(Widget):
         for obj in self.objs:
             obj.pos = (obj.pos[0] + relativeDx, obj.pos[1]) # 相対速度的な移動
             obj.move(dt)
+
+        self.printIdx() # インデックスを標準出力
 
     """ 各オブジェクトの状態更新系処理 """
     def updateMain(self, dt):
@@ -286,18 +290,31 @@ class MainGame(Widget):
         leftIdx = math.floor(leftX / 100.0)
         rightIdx = math.ceil(rightX / 100.0) - 1
 
+        # インデックスが変わらない場合は処理を終了
+        if self.leftIdx is not None and self.rightIdx is not None and self.leftIdx == leftIdx and self.rightIdx == rightIdx:
+            return
+
         for x in range(leftIdx, rightIdx + 1):
             drawFlg = False
             if self.leftIdx is None or  x < self.leftIdx: # 描画済み左インデックスが指定されていないケース または 現在インデックスが描画済み左インデックスよりも左の場合
                 drawFlg = True
-                self.leftIdx = x
             if self.rightIdx is None or x > self.rightIdx: # 描画済み右インデックスが指定されていないケース または 現在インデックスが描画済み右インデックスよりも右の場合
                 drawFlg = True
-                self.rightIdx = x
             if drawFlg is True: # 描画フラグがTrueの場合のときのみ
                 for y in range(0, len(self.stageRows)):
                     tiles = self.stageRows[len(self.stageRows) - 1 - y].strip()
                     self.createGameObj(tiles[x], self.imgs, 100 * x, 100 * y) # tiles[x]の値ごとに適切なオブジェクトを画面に配置する
+        # メモ：描画する座標も、インデックスベースで管理する必要があるのではないか
+        # そうすれば、はみだしたオブジェクトを削除する処理も多少らくに実装できるのではあるまいか
+
+        # drawingObj.x = rightIdx * 100 - currentX
+        # で算出できるっぽい
+
+        # 描画後、インデックスを上書きする
+        self.leftIdx = leftIdx
+        self.rightIdx = rightIdx
+
+        # TODO: はみだしたオブジェクトを消去する
 
     def setStageWidth(self):
         for y in range(0, len(self.stageRows)):
@@ -309,6 +326,22 @@ class MainGame(Widget):
                 return False # Not all ok, return False
         # all ok, return True
         return True
+
+    """ インデックスを出力 TODO: この関数はいずれ消すこと """
+    def printIdx(self):
+        # 現在座標から画面左から-20%(or0)の座標と画面右から+20%(orMAX)の座標を決定する
+        leftX = max(0, self.currentX - self.screenWidth * 0.2) # when 0, idx = 0
+        rightX = min(self.currentX + self.screenWidth * 1.2, self.stageWidth) # when 5400, idx = 53
+
+        # 上記座標のタイルインデックスを取得する
+        leftIdx = math.floor(leftX / 100.0)
+        rightIdx = math.ceil(rightX / 100.0) - 1
+        print("Hoge currentX=" + str(self.currentX) 
+              + ", screenWidth=" + str(self.screenWidth)
+              + ", leftIdx=" + str(leftIdx) 
+              + ", rightIdx=" + str(rightIdx)
+              + ", something.X=" + str(self.something.pos[0]))
+
 
 """ メインのクラス(Androidプログラムで言うところのActivity) """
 class MainApp(App):
